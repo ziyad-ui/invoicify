@@ -1,0 +1,13 @@
+node_modules/ 
+vendor/ 
+dist/ 
+invoicify-api/.env 
+invoicify-api/storage/logs/*.log 
+invoicify-api/storage/framework/cache/* 
+invoicify-api/storage/framework/sessions/* 
+invoicify-api/storage/framework/views/* 
+invoicify-api/bootstrap/cache/*.php 
+invoicify-api/database/database.sqlite 
+invoicify-api/.phpunit.result.cache 
+.DS_Store 
+Thumbs.db 

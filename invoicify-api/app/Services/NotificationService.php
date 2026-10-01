@@ -1,0 +1,103 @@
+<?php
+
+namespace App\Services;
+
+use App\Mail\NotificationMail;
+use App\Models\Invoice;
+use App\Models\NotificationLog;
+use App\Models\Payment;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Throwable;
+
+/**
+ * Sends email notifications and keeps a log row for every attempt, so the
+ * Notifications page can show Sent / Failed and staff can resend.
+ * A mail failure never breaks the action that triggered it (e.g. recording a payment).
+ */
+class NotificationService
+{
+    public function sendDueSoonReminder(Invoice $invoice): NotificationLog
+    {
+        $client = $invoice->client;
+        $property = $client->property?->name ?? 'your property';
+
+        $body = "Hello {$client->name},\n\n"
+            ."This is a friendly reminder that your installment for {$property} "
+            ."({$invoice->number}) of ₱".number_format($invoice->remaining, 2)
+            .' is due on '.$invoice->due_date->format('F j, Y').".\n\n"
+            .$this->howToPay();
+
+        return $this->send($client, 'Due Soon Reminder', "Installment due {$invoice->due_date->format('M j')} — {$property}", $body, $invoice);
+    }
+
+    public function sendOverdueNotice(Invoice $invoice): NotificationLog
+    {
+        $client = $invoice->client;
+        $property = $client->property?->name ?? 'your property';
+
+        $body = "Hello {$client->name},\n\n"
+            ."Our records show that your installment for {$property} ({$invoice->number}) "
+            .'of ₱'.number_format($invoice->remaining, 2).' was due on '
+            .$invoice->due_date->format('F j, Y').' and has not been paid yet.'
+            ."\n\nIf you have already paid, please send your proof of payment to your account officer so we can record it.\n\n"
+            .$this->howToPay();
+
+        return $this->send($client, 'Overdue Notice', "Your installment is overdue — {$property}", $body, $invoice);
+    }
+
+    public function sendPaymentReceipt(Payment $payment): NotificationLog
+    {
+        $payment->loadMissing(['client.property', 'allocations.invoice']);
+        $client = $payment->client;
+
+        $applied = $payment->allocations
+            ->map(fn ($a) => '  • '.$a->invoice->number.' — ₱'.number_format($a->amount, 2))
+            ->implode("\n");
+
+        $body = "Hello {$client->name},\n\n"
+            .'We have recorded your payment of ₱'.number_format($payment->amount, 2)
+            .' received on '.$payment->paid_at->format('F j, Y').".\n\n"
+            ."Receipt No.: {$payment->receipt_number}\n"
+            ."Payment mode: {$payment->mode}".($payment->reference ? " ({$payment->reference})" : '')."\n"
+            ."Applied to:\n{$applied}\n\n"
+            .'Thank you for your payment.';
+
+        return $this->send($client, 'Payment Receipt', 'Receipt for your payment of ₱'.number_format($payment->amount, 2), $body, null, $payment);
+    }
+
+    /** Re-send an earlier notification (creates a new log entry, keeps the original for audit). */
+    public function resend(NotificationLog $log): NotificationLog
+    {
+        return $this->send($log->client, $log->type, $log->subject, $log->body, $log->invoice_id ? Invoice::find($log->invoice_id) : null, $log->payment_id ? Payment::find($log->payment_id) : null);
+    }
+
+    private function send($client, string $type, string $subject, string $body, ?Invoice $invoice = null, ?Payment $payment = null): NotificationLog
+    {
+        $log = NotificationLog::create([
+            'client_id' => $client->id,
+            'invoice_id' => $invoice?->id,
+            'payment_id' => $payment?->id,
+            'type' => $type,
+            'subject' => $subject,
+            'body' => $body,
+            'status' => 'Pending',
+        ]);
+
+        try {
+            Mail::to($client->email)->send(new NotificationMail($subject, $body, $client->name));
+            $log->update(['status' => 'Sent', 'sent_at' => now()]);
+        } catch (Throwable $e) {
+            report($e);
+            $log->update(['status' => 'Failed', 'error' => Str::limit($e->getMessage(), 500)]);
+        }
+
+        return $log;
+    }
+
+    private function howToPay(): string
+    {
+        return 'Payments are made directly to Love Realty (bank transfer, check, or in person at our office). '
+            .'Please send your proof of payment to your account officer so it can be recorded.';
+    }
+}
