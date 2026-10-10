@@ -29,6 +29,23 @@ const EMPTY_FORM = {
 
 const PROPERTY_TYPES = ["Residential Condominium", "House and Lot", "Open Lot", "Beach Property"];
 
+const TEMPLATE_ROWS = [
+  ["Name", "Email", "Phone", "Property Name", "Property Type", "Total Price", "Monthly Amount", "Term Months", "First Due Date"],
+  ["Maria Santos", "maria.santos@gmail.com", "09175550142", "Unit 12B, Sunview Residences", "Residential Condominium", "1850000", "8500", "12", "2026-11-01"],
+  ["Juan Dela Cruz", "juan.delacruz@gmail.com", "09185550987", "Lot 4, Greenfield Homes", "Open Lot", "950000", "12000", "12", "2026-11-15"],
+];
+
+function downloadCsv(filename, rows) {
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = "\uFEFF" + rows.map((r) => r.map(esc).join(",")).join("\r\n"); // BOM so Excel reads UTF-8
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Clients() {
   const { data: clients, loading, error, reload } = useFetch(() => clientsApi.list(), []);
   const [query, setQuery] = useState("");
@@ -37,6 +54,11 @@ export default function Clients() {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(null); // { name, email, password } shown once
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(null); // { message, rows: [{row, name, errors[]}], more }
+  const [imported, setImported] = useState(null); // { message, imported, pastDueCount, clients[] } shown once
   const { addToast } = useToast();
 
   const filtered = useMemo(() => {
@@ -101,6 +123,41 @@ export default function Clients() {
     }
   }
 
+  function closeImport() {
+    setImportOpen(false);
+    setImportFile(null);
+    setImportError(null);
+  }
+
+  async function handleImport() {
+    if (!importFile) return;
+    setImporting(true);
+    setImportError(null);
+    try {
+      const res = await clientsApi.importFile(importFile);
+      closeImport();
+      setImported(res);
+      reload();
+      addToast(res.message, "success");
+    } catch (err) {
+      const data = err.response?.data;
+      setImportError({
+        message: parseApiError(err).message,
+        rows: data?.rowErrors || [],
+        more: data?.moreErrors || 0,
+      });
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function downloadCredentials() {
+    downloadCsv("client-logins.csv", [
+      ["Name", "Email", "Property", "Temporary Password"],
+      ...imported.clients.map((c) => [c.name, c.email, c.property, c.temporaryPassword]),
+    ]);
+  }
+
   const columns = [
     { key: "name", header: "Client", render: (c) => <span className="font-medium text-ink">{c.name}</span> },
     { key: "property", header: "Property", render: (c) => <span className="text-accent">{c.property?.name}</span> },
@@ -132,9 +189,14 @@ export default function Clients() {
       <PageHeader
         title="Clients"
         action={
-          <Button onClick={() => setModalOpen(true)}>
-            <IconPlus width={16} height={16} /> Add Client
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              Import Spreadsheet
+            </Button>
+            <Button onClick={() => setModalOpen(true)}>
+              <IconPlus width={16} height={16} /> Add Client
+            </Button>
+          </div>
         }
       />
 
@@ -228,6 +290,95 @@ export default function Clients() {
                 <dd className="num font-medium">{created.password}</dd>
               </div>
             </dl>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={importOpen}
+        onClose={closeImport}
+        title="Import clients from a spreadsheet"
+        width="max-w-lg"
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeImport}>
+              Cancel
+            </Button>
+            <Button onClick={handleImport} loading={importing} disabled={!importFile}>
+              Import Clients
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-sm text-gray-600">
+          <p>
+            Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with one client per row. Each client gets
+            their full monthly invoice schedule and a client portal login, exactly like <em>Add Client</em>.
+          </p>
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+            <span>Columns: Name, Email, Phone, Property Name, Property Type, Total Price, Monthly Amount, Term Months, First Due Date</span>
+            <Button variant="outline" size="sm" className="ml-3 flex-shrink-0" onClick={() => downloadCsv("clients-template.csv", TEMPLATE_ROWS)}>
+              Download template
+            </Button>
+          </div>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
+            <strong>Already-running installments?</strong> Set <em>First Due Date</em> to the client's <strong>next unpaid</strong>{" "}
+            due date and <em>Term Months</em> to the months <strong>remaining</strong>. A first due date in the past makes
+            those invoices overdue right away, and overdue emails will go out.
+          </p>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={(e) => {
+              setImportFile(e.target.files?.[0] || null);
+              setImportError(null);
+            }}
+            className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-gray-200"
+          />
+          {importError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+              <p className="font-medium">{importError.message}</p>
+              {importError.rows.length > 0 && (
+                <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-xs">
+                  {importError.rows.map((r) => (
+                    <li key={r.row}>
+                      <strong>Row {r.row}</strong>
+                      {r.name ? ` (${r.name})` : ""}: {r.errors.join(" ")}
+                    </li>
+                  ))}
+                  {importError.more > 0 && <li>…and {importError.more} more row(s) with problems.</li>}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!imported}
+        onClose={() => setImported(null)}
+        title="Import complete"
+        footer={
+          <>
+            <Button variant="outline" onClick={downloadCredentials}>
+              Download client logins (CSV)
+            </Button>
+            <Button onClick={() => setImported(null)}>Done</Button>
+          </>
+        }
+      >
+        {imported && (
+          <div className="space-y-3 text-sm text-gray-600">
+            <p>
+              <strong>{imported.message}</strong> Each client has a portal login with a temporary password. The passwords
+              are shown <strong>only once</strong> — download the list now and keep it somewhere safe.
+            </p>
+            {imported.pastDueCount > 0 && (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
+                {imported.pastDueCount} client(s) have a first due date in the past, so their invoices are already
+                overdue and overdue notices will be emailed.
+              </p>
+            )}
           </div>
         )}
       </Modal>

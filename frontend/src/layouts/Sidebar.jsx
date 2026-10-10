@@ -7,6 +7,7 @@ import {
   IconPayments,
   IconBell,
   IconReports,
+  IconStaff,
   IconLogout,
 } from "../components/icons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { to: "/payments", label: "Payments", icon: IconPayments, roles: ["owner", "staff"] },
   { to: "/notifications", label: "Notifications", icon: IconBell, roles: ["owner", "staff"] },
   { to: "/reports", label: "Reports", icon: IconReports, roles: ["owner"] },
+  { to: "/staff", label: "Staff", icon: IconStaff, roles: ["owner"] },
 ];
 
 export default function Sidebar() {
@@ -56,9 +58,12 @@ export default function Sidebar() {
         <p className="text-xs text-white/40">Signed in as</p>
         <p className="text-sm font-semibold">{user?.name}</p>
         <p className="text-xs text-white/50">{user?.title}</p>
+        <NavLink to="/change-password" className="mt-3 block text-xs text-white/50 hover:text-white">
+          Change password
+        </NavLink>
         <button
           onClick={logout}
-          className="mt-3 flex items-center gap-2 text-xs text-white/50 hover:text-white"
+          className="mt-2 flex items-center gap-2 text-xs text-white/50 hover:text-white"
         >
           <IconLogout width={14} height={14} />
           Log out

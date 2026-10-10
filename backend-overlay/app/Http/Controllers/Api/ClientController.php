@@ -6,15 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ClientDetailResource;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
-use App\Models\InstallmentPlan;
-use App\Models\Property;
 use App\Models\User;
-use App\Services\InvoiceScheduleService;
+use App\Services\ClientOnboardingService;
+use App\Services\TemporaryPasswordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
@@ -43,7 +41,7 @@ class ClientController extends Controller
     }
 
     /** POST /api/clients — creates the client, property, installment plan, invoice schedule and portal login. */
-    public function store(Request $request, InvoiceScheduleService $schedule): JsonResponse
+    public function store(Request $request, ClientOnboardingService $onboarding): JsonResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -57,43 +55,7 @@ class ClientController extends Controller
             'first_due_date' => ['required', 'date'],
         ]);
 
-        $temporaryPassword = Str::password(10, symbols: false);
-
-        $client = DB::transaction(function () use ($data, $temporaryPassword, $schedule) {
-            $client = Client::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'] ?? null,
-            ]);
-
-            $property = Property::create([
-                'client_id' => $client->id,
-                'name' => $data['property_name'],
-                'type' => $data['property_type'],
-                'total_price' => $data['total_price'],
-            ]);
-
-            $plan = InstallmentPlan::create([
-                'client_id' => $client->id,
-                'property_id' => $property->id,
-                'monthly_amount' => $data['monthly_amount'],
-                'term_months' => $data['term_months'],
-                'first_due_date' => $data['first_due_date'],
-            ]);
-
-            $schedule->generate($plan);
-
-            User::create([
-                'name' => $client->name,
-                'email' => $client->email,
-                'password' => $temporaryPassword,
-                'role' => User::ROLE_CLIENT,
-                'client_id' => $client->id,
-                'must_change_password' => true,
-            ]);
-
-            return $client;
-        });
+        [$client, $temporaryPassword] = $onboarding->create($data);
 
         $client->load(['property', 'plan', 'invoices', 'payments']);
 
@@ -102,6 +64,18 @@ class ClientController extends Controller
             ->additional(['temporaryPassword' => $temporaryPassword])
             ->response()
             ->setStatusCode(201);
+    }
+
+    /** POST /api/clients/{client}/reset-password — new one-time temporary password for the client's portal login. */
+    public function resetPassword(Client $client, TemporaryPasswordService $passwords): JsonResponse
+    {
+        $user = User::where('client_id', $client->id)->where('role', User::ROLE_CLIENT)->first();
+        abort_unless($user, 404, 'This client has no portal login.');
+
+        return response()->json([
+            'email' => $user->email,
+            'temporaryPassword' => $passwords->reset($user),
+        ]);
     }
 
     public function show(Client $client): ClientDetailResource

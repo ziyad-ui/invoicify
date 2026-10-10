@@ -30,6 +30,10 @@ export default function ClientProfile() {
   const [payErrors, setPayErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetCreds, setResetCreds] = useState(null); // { email, password } shown once
+
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [editErrors, setEditErrors] = useState({});
@@ -89,6 +93,20 @@ export default function ClientProfile() {
     }
   }
 
+  async function handleResetPassword() {
+    setResetting(true);
+    try {
+      const res = await clientsApi.resetPassword(client.id);
+      setResetOpen(false);
+      setResetCreds({ email: res.email, password: res.temporaryPassword });
+      addToast(`A new temporary password was issued for ${client.name}.`, "success");
+    } catch (err) {
+      addToast(parseApiError(err).message, "error");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   function openEdit() {
     setEditForm({
       name: client.name,
@@ -144,6 +162,9 @@ export default function ClientProfile() {
         subtitle={client.email}
         action={
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setResetOpen(true)}>
+              Reset Portal Password
+            </Button>
             <Button variant="outline" onClick={openEdit}>
               Edit Details
             </Button>
@@ -279,6 +300,52 @@ export default function ClientProfile() {
           </FormField>
           <FormField label="Total price (₱)" type="number" min="0" value={editForm.totalPrice ?? ""} onChange={(e) => setEditForm({ ...editForm, totalPrice: e.target.value })} error={editErrors.totalPrice} />
         </form>
+      </Modal>
+
+      <Modal
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="Reset portal password?"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setResetOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword} loading={resetting}>
+              Reset password
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-600">
+          <strong>{client.name}</strong> will be signed out of the client portal and given a new temporary password, which
+          you'll see once so you can pass it on. They'll be asked to choose their own at next sign-in.
+        </p>
+      </Modal>
+
+      <Modal
+        open={!!resetCreds}
+        onClose={() => setResetCreds(null)}
+        title="New temporary password"
+        footer={<Button onClick={() => setResetCreds(null)}>Done</Button>}
+      >
+        {resetCreds && (
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-600">
+              Share these sign-in details with <strong>{client.name}</strong>. The password is shown <strong>only once</strong>.
+            </p>
+            <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+              <div className="flex justify-between px-3 py-2">
+                <dt className="text-gray-500">Email</dt>
+                <dd className="num font-medium">{resetCreds.email}</dd>
+              </div>
+              <div className="flex justify-between px-3 py-2">
+                <dt className="text-gray-500">Temporary password</dt>
+                <dd className="num font-medium">{resetCreds.password}</dd>
+              </div>
+            </dl>
+          </div>
+        )}
       </Modal>
     </div>
   );

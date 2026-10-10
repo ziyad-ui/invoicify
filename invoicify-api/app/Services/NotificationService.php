@@ -69,11 +69,76 @@ class NotificationService
     /** Re-send an earlier notification (creates a new log entry, keeps the original for audit). */
     public function resend(NotificationLog $log): NotificationLog
     {
-        return $this->send($log->client, $log->type, $log->subject, $log->body, $log->invoice_id ? Invoice::find($log->invoice_id) : null, $log->payment_id ? Payment::find($log->payment_id) : null);
+        $client = $log->client;
+
+        if (! $client || $client->trashed()) {
+            return $this->recordFailure($log, 'Client has been deleted; nothing was sent.');
+        }
+
+        if (blank($client->email)) {
+            return $this->recordFailure($log, 'Client has no email address on file.');
+        }
+
+        // Rebuild the message from current data so amounts and dates are never stale.
+        $invoice = $log->invoice_id ? Invoice::with('client.property')->find($log->invoice_id) : null;
+        $payment = $log->payment_id ? Payment::find($log->payment_id) : null;
+
+        if ($log->type === 'Due Soon Reminder' && $invoice && $invoice->remaining > 0) {
+            return $this->sendDueSoonReminder($invoice);
+        }
+
+        if ($log->type === 'Overdue Notice' && $invoice && $invoice->remaining > 0) {
+            return $this->sendOverdueNotice($invoice);
+        }
+
+        if ($log->type === 'Payment Receipt' && $payment) {
+            return $this->sendPaymentReceipt($payment);
+        }
+
+        // Invoice was paid/removed since: fall back to the original saved text.
+        return $this->send($client, $log->type, $log->subject, $log->body, $invoice, $payment);
+    }
+
+    private function recordFailure(NotificationLog $log, string $reason): NotificationLog
+    {
+        return NotificationLog::create([
+            'client_id' => $log->client_id,
+            'invoice_id' => $log->invoice_id,
+            'payment_id' => $log->payment_id,
+            'type' => $log->type,
+            'subject' => $log->subject,
+            'body' => $log->body,
+            'status' => 'Failed',
+            'error' => $reason,
+        ]);
+    }
+
+    /** True once today's successful sends reach INVOICIFY_DAILY_EMAIL_LIMIT (0 = unlimited). */
+    public function dailyLimitReached(): bool
+    {
+        $limit = (int) config('invoicify.daily_email_limit');
+
+        return $limit > 0
+            && NotificationLog::where('status', 'Sent')->whereDate('sent_at', today())->count() >= $limit;
     }
 
     private function send($client, string $type, string $subject, string $body, ?Invoice $invoice = null, ?Payment $payment = null): NotificationLog
     {
+        if ($this->dailyLimitReached()) {
+            $limit = (int) config('invoicify.daily_email_limit');
+
+            return NotificationLog::create([
+                'client_id' => $client->id,
+                'invoice_id' => $invoice?->id,
+                'payment_id' => $payment?->id,
+                'type' => $type,
+                'subject' => $subject,
+                'body' => $body,
+                'status' => 'Failed',
+                'error' => "Daily email limit of {$limit} reached. Use Resend tomorrow, or raise INVOICIFY_DAILY_EMAIL_LIMIT / move to a larger email service.",
+            ]);
+        }
+
         $log = NotificationLog::create([
             'client_id' => $client->id,
             'invoice_id' => $invoice?->id,

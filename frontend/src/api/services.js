@@ -12,6 +12,14 @@ export const authApi = {
   login: ({ email, password, role }) => body(http.post("/login", { email, password, role })),
   me: () => body(http.get("/me")),
   logout: () => http.post("/logout"),
+  changePassword: (f) =>
+    body(
+      http.put("/password", {
+        current_password: f.currentPassword,
+        password: f.password,
+        password_confirmation: f.passwordConfirmation,
+      })
+    ),
 };
 
 export const dashboardApi = {
@@ -48,6 +56,14 @@ export const clientsApi = {
       })
     ),
   archive: (id) => http.delete(`/clients/${id}`),
+  // Resolves to { email, temporaryPassword } - shown once
+  resetPassword: (id) => body(http.post(`/clients/${id}/reset-password`)),
+  // Bulk-create clients from an .xlsx / .csv file. Resolves to { message, imported, pastDueCount, clients: [...] }
+  importFile: (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return body(http.post("/clients/import", form));
+  },
   // Resolves to { data: updatedClient, payment }
   recordPayment: (id, f) =>
     body(
@@ -58,6 +74,15 @@ export const clientsApi = {
         paid_at: f.paidAt || null,
       })
     ),
+};
+
+export const staffApi = {
+  list: () => data(http.get("/staff")),
+  // Resolves to { data: staff, temporaryPassword }
+  create: (f) => body(http.post("/staff", { name: f.name, email: f.email })),
+  update: (id, patch) => data(http.patch(`/staff/${id}`, patch)),
+  // Resolves to { data: staff, temporaryPassword }
+  resetPassword: (id) => body(http.post(`/staff/${id}/reset-password`)),
 };
 
 export const invoicesApi = {

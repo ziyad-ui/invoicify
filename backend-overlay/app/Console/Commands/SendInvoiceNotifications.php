@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Invoice;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SendInvoiceNotifications extends Command
 {
@@ -25,9 +26,15 @@ class SendInvoiceNotifications extends Command
             ->with('client.property')
             ->get();
 
+        $capped = false;
+
         foreach ($dueSoon as $invoice) {
             if (! $invoice->client) {
                 continue; // archived client
+            }
+            if ($notifications->dailyLimitReached()) {
+                $capped = true;
+                break; // the rest stay unsent and are picked up by tomorrow's run
             }
             $log = $notifications->sendDueSoonReminder($invoice);
             if ($log->status === 'Sent') { // failed sends are retried on the next run
@@ -49,6 +56,10 @@ class SendInvoiceNotifications extends Command
             if (! $invoice->client) {
                 continue;
             }
+            if ($notifications->dailyLimitReached()) {
+                $capped = true;
+                break;
+            }
             $log = $notifications->sendOverdueNotice($invoice);
             if ($log->status === 'Sent') {
                 $invoice->update(['overdue_notice_sent_at' => now()]);
@@ -57,6 +68,11 @@ class SendInvoiceNotifications extends Command
         }
 
         $this->info("Sent {$reminders} reminder(s) and {$overdue} overdue notice(s).");
+
+        if ($capped) {
+            $this->warn('Daily email limit reached - remaining notices will be sent on the next run.');
+            Log::warning('Invoicify: daily email limit reached; some notices were deferred to the next run.');
+        }
 
         return self::SUCCESS;
     }

@@ -14,6 +14,8 @@ import Invoices from "./pages/internal/Invoices.jsx";
 import Payments from "./pages/internal/Payments.jsx";
 import Notifications from "./pages/internal/Notifications.jsx";
 import Reports from "./pages/internal/Reports.jsx";
+import Staff from "./pages/internal/Staff.jsx";
+import ChangePassword from "./pages/ChangePassword.jsx";
 
 import ClientPortalLayout from "./layouts/ClientPortalLayout.jsx";
 import PortalDashboard from "./pages/portal/PortalDashboard.jsx";
@@ -33,6 +35,14 @@ export default function App() {
         element={<Navigate to={role ? (role === "client" ? "/portal/dashboard" : "/dashboard") : "/login"} replace />}
       />
       <Route path="/login" element={<Login />} />
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute>
+            <ChangePassword />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         element={
@@ -52,6 +62,14 @@ export default function App() {
           element={
             <ProtectedRoute allow={["owner"]}>
               <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/staff"
+          element={
+            <ProtectedRoute allow={["owner"]}>
+              <Staff />
             </ProtectedRoute>
           }
         />

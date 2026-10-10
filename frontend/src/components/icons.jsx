@@ -144,3 +144,10 @@ export const IconAlert = (p) => (
     <path d="M12 17.2v.1" />
   </svg>
 );
+
+export const IconStaff = (p) => (
+  <svg {...base} {...p}>
+    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z" />
+    <path d="M9.5 12l2 2 3.5-4" />
+  </svg>
+);

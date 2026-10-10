@@ -11,6 +11,8 @@ export const STATUS_TONE = {
   Sent: "ok",
   Verified: "ok",
   Upcoming: "neutral",
+  Active: "ok",
+  Deactivated: "overdue",
 };
 
 export function toneFor(status) {

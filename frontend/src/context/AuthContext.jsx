@@ -50,8 +50,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Called after the person has successfully set their own password.
+  function markPasswordChanged() {
+    setUser((u) => (u ? { ...u, mustChangePassword: false } : u));
+  }
+
   const value = useMemo(
-    () => ({ user, role: user?.role || null, loading, initializing, login, logout }),
+    () => ({ user, role: user?.role || null, loading, initializing, login, logout, markPasswordChanged }),
     [user, loading, initializing]
   );
 

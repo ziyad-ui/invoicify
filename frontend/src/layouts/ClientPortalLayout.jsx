@@ -38,6 +38,10 @@ export default function ClientPortalLayout() {
         <div className="flex items-center gap-3 text-sm text-gray-500">
           <span className="font-medium text-ink">{user?.name}</span>
           <span>·</span>
+          <NavLink to="/change-password" className="underline hover:text-ink">
+            Change password
+          </NavLink>
+          <span>·</span>
           <button onClick={logout} className="underline hover:text-ink">
             Log out
           </button>

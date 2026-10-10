@@ -34,7 +34,7 @@ handle that step by hand.
    ```powershell
    # Terminal 1 — backend
    cd invoicify-api
-   php artisan migrate --seed
+   php artisan migrate --seed --seeder=DemoSeeder   # demo data. For a real/empty install see DEPLOYMENT.md
    php artisan test          # should show all tests passing
    php artisan serve
 
