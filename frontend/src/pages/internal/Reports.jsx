@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import PageHeader from "../../components/PageHeader.jsx";
 import Card from "../../components/Card.jsx";
 import StatCard from "../../components/StatCard.jsx";
-import BarChart from "../../components/BarChart.jsx";
+import LineChart from "../../components/LineChart.jsx";
 import Table from "../../components/Table.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import Button from "../../components/Button.jsx";
@@ -44,9 +44,9 @@ export default function Reports() {
 
   const columns = [
     { key: "name", header: "Client", render: (c) => <span className="font-medium text-ink">{c.name}</span> },
-    { key: "collected", header: "Total Collected", render: (c) => <span className="num">{formatCurrency(c.collected)}</span> },
-    { key: "balance", header: "Outstanding", render: (c) => <span className="num">{formatCurrency(c.balance)}</span> },
-    { key: "status", header: "Status", render: (c) => <StatusBadge status={c.status} /> },
+    { key: "collected", header: "Total Collected", className: "text-right", render: (c) => <span className="num">{formatCurrency(c.collected)}</span> },
+    { key: "balance", header: "Outstanding", className: "text-right", render: (c) => <span className="num">{formatCurrency(c.balance)}</span> },
+    { key: "status", header: "Status", className: "pl-6", render: (c) => <StatusBadge status={c.status} /> },
   ];
 
   if (loading) {
@@ -78,14 +78,14 @@ export default function Reports() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Revenue Collected" value={formatCurrency(stats.revenueCollected)} tone="dark" />
         <StatCard label="Outstanding Balance" value={formatCurrency(stats.outstandingBalance)} />
         <StatCard label="Overdue Accounts" value={stats.overdueAccounts} />
       </div>
 
       <Card title="Monthly Collection Summary" className="mt-6">
-        <BarChart data={monthlyCollections} />
+        <LineChart data={monthlyCollections} />
       </Card>
 
       <Card title="Per-Client Performance" className="mt-6">

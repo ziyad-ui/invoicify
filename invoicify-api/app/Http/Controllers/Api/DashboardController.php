@@ -33,10 +33,14 @@ class DashboardController extends Controller
         if ($isOwner) {
             // Financial totals are owner-only; staff never receive them from the API.
             $stats['revenueCollected'] = round(Payment::sum('amount'), 2);
+            $stats['revenueThisMonth'] = round(Payment::whereBetween('paid_at', [
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString(),
+            ])->sum('amount'), 2);
             $stats['outstandingBalance'] = round($clients->sum('balance'), 2);
             $data['stats'] = $stats;
             $data['monthlyCollections'] = $reports->monthlyCollections(6);
-            $data['clients'] = ClientResource::collection($clients)->resolve($request);
+            $data['period'] = now()->format('F Y');
         } else {
             // Staff get the follow-up list only.
             $needsFollowUp = $clients->whereIn('status', ['Overdue', 'Due Soon'])->values();

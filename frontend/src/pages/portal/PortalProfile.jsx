@@ -33,7 +33,7 @@ export default function PortalProfile() {
 
   return (
     <div>
-      <PageHeader title="My Profile" subtitle="Your account and property details on file with Love Realty." />
+      <PageHeader title="Account Details" subtitle="Your property and installment plan on file with Love Realty." />
       <Card>
         <dl className="divide-y divide-gray-100 text-sm">
           {rows.map(([label, value]) => (
@@ -45,7 +45,7 @@ export default function PortalProfile() {
         </dl>
       </Card>
       <p className="mt-4 text-xs text-gray-400">
-        To update any of this information, contact your Love Realty account officer.
+        You can change your name, email and password from the menu (☰) → Profile. For property or plan details, contact your Love Realty account officer.
       </p>
     </div>
   );

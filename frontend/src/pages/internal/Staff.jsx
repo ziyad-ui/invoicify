@@ -6,6 +6,7 @@ import StatusBadge from "../../components/StatusBadge.jsx";
 import Button from "../../components/Button.jsx";
 import Modal from "../../components/Modal.jsx";
 import FormField from "../../components/FormField.jsx";
+import ConfirmModal from "../../components/ConfirmModal.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { IconPlus } from "../../components/icons.jsx";
 import { useToast } from "../../components/Toast.jsx";
@@ -15,7 +16,7 @@ import { parseApiError } from "../../api/http.js";
 
 const EMPTY = { name: "", email: "" };
 
-/** Owner-only: add Administrative Staff logins, reset their passwords, deactivate them. */
+/** Owner-only: add Administrative Staff logins, edit them, reset their passwords, deactivate or delete them. */
 export default function Staff() {
   const { data: people, loading, error, reload } = useFetch(() => staffApi.list(), []);
   const { addToast } = useToast();
@@ -24,8 +25,11 @@ export default function Staff() {
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
-  const [credentials, setCredentials] = useState(null); // { name, email, password } shown once
-  const [confirm, setConfirm] = useState(null); // { person, action: "reset" | "deactivate" }
+  const [credentials, setCredentials] = useState(null); // { name, email, password, emailed } shown once
+  const [confirm, setConfirm] = useState(null); // { person, action: "reset" | "deactivate" | "delete" }
+  const [editing, setEditing] = useState(null); // person being edited
+  const [editForm, setEditForm] = useState(EMPTY);
+  const [editErrors, setEditErrors] = useState({});
   const [working, setWorking] = useState(false);
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
@@ -56,14 +60,47 @@ export default function Staff() {
     }
   }
 
+  function openEdit(person) {
+    setEditForm({ name: person.name, email: person.email });
+    setEditErrors({});
+    setEditing(person);
+  }
+
+  async function handleEdit(e) {
+    e?.preventDefault();
+    const next = {};
+    if (!editForm.name.trim()) next.name = "Name is required.";
+    if (!editForm.email.trim()) next.email = "Email is required.";
+    else if (!/^\S+@\S+\.\S+$/.test(editForm.email)) next.email = "Enter a valid email address.";
+    setEditErrors(next);
+    if (Object.keys(next).length) return;
+
+    setSaving(true);
+    try {
+      await staffApi.update(editing.id, { name: editForm.name.trim(), email: editForm.email.trim() });
+      addToast(`${editForm.name.trim()}'s details were updated.`, "success");
+      setEditing(null);
+      reload();
+    } catch (err) {
+      const { message, fields } = parseApiError(err);
+      if (Object.keys(fields).length) setEditErrors(fields);
+      else addToast(message, "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleConfirm() {
     const { person, action } = confirm;
     setWorking(true);
     try {
       if (action === "reset") {
         const res = await staffApi.resetPassword(person.id);
-        setCredentials({ name: person.name, email: person.email, password: res.temporaryPassword });
+        setCredentials({ name: person.name, email: person.email, password: res.temporaryPassword, emailed: res.emailed });
         addToast(`${person.name} was signed out and given a new temporary password.`, "success");
+      } else if (action === "delete") {
+        await staffApi.remove(person.id);
+        addToast(`${person.name} was permanently deleted.`, "warning");
       } else {
         await staffApi.update(person.id, { is_active: !person.isActive });
         addToast(person.isActive ? `${person.name} was deactivated.` : `${person.name} was re-activated.`, person.isActive ? "warning" : "success");
@@ -94,7 +131,10 @@ export default function Staff() {
         p.role === "owner" ? (
           <span className="text-xs text-gray-400">Account owner</span>
         ) : (
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => openEdit(p)}>
+              Edit
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setConfirm({ person: p, action: "reset" })}>
               Reset password
             </Button>
@@ -104,6 +144,9 @@ export default function Staff() {
               onClick={() => setConfirm({ person: p, action: "deactivate" })} // toggles: deactivates, or re-activates when already inactive
             >
               {p.isActive ? "Deactivate" : "Re-activate"}
+            </Button>
+            <Button variant="outline" size="sm" className="text-red-600" onClick={() => setConfirm({ person: p, action: "delete" })}>
+              Delete
             </Button>
           </div>
         ),
@@ -160,8 +203,50 @@ export default function Staff() {
         </form>
       </Modal>
 
+      <ConfirmModal
+        open={confirm?.action === "delete"}
+        onClose={() => setConfirm(null)}
+        onConfirm={handleConfirm}
+        loading={working}
+        danger
+        title="Delete staff member?"
+        confirmLabel="Delete permanently"
+      >
+        {confirm?.action === "delete" && (
+          <>
+            Are you sure you want to permanently delete <strong>{confirm.person.name}</strong>? This action cannot be
+            undone. Payments they recorded stay in the history. If you only want to stop them signing in, use
+            Deactivate instead.
+          </>
+        )}
+      </ConfirmModal>
+
       <Modal
-        open={!!confirm}
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title="Edit staff member"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEdit} loading={saving}>
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        <form className="space-y-4" onSubmit={handleEdit} noValidate>
+          <FormField label="Full name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} error={editErrors.name} />
+          <FormField label="Email address" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} error={editErrors.email} />
+          <p className="text-xs text-gray-500">
+            Changing the email changes what they sign in with. To give them a new password, use Reset password.
+          </p>
+        </form>
+      </Modal>
+
+      <Modal
+        open={!!confirm && confirm.action !== "delete"}
         onClose={() => setConfirm(null)}
         title={confirm?.action === "reset" ? "Reset password?" : confirm?.person.isActive ? "Deactivate staff member?" : "Re-activate staff member?"}
         footer={
@@ -209,8 +294,17 @@ export default function Staff() {
         {credentials && (
           <div className="space-y-3 text-sm">
             <p className="text-gray-600">
-              Share these sign-in details with <strong>{credentials.name}</strong> (choose <strong>Staff</strong> on the login screen). The
-              temporary password is shown <strong>only once</strong>.
+              {credentials.emailed ? (
+                <>
+                  A reset email with these details was sent to <strong>{credentials.name}</strong>. The temporary password
+                  is shown here <strong>only once</strong> in case you need to pass it on yourself.
+                </>
+              ) : (
+                <>
+                  Share these sign-in details with <strong>{credentials.name}</strong>. The temporary password is shown{" "}
+                  <strong>only once</strong>.
+                </>
+              )}
             </p>
             <dl className="divide-y divide-gray-100 rounded-lg border border-gray-200">
               <div className="flex justify-between px-3 py-2">

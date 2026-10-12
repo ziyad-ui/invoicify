@@ -5,25 +5,25 @@ import {
   IconClients,
   IconInvoice,
   IconPayments,
-  IconBell,
   IconReports,
   IconStaff,
   IconLogout,
 } from "../components/icons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { usePreferences } from "../context/PreferencesContext.jsx";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: IconDashboard, roles: ["owner", "staff"] },
-  { to: "/clients", label: "Clients", icon: IconClients, roles: ["owner", "staff"] },
-  { to: "/invoices", label: "Invoices", icon: IconInvoice, roles: ["owner", "staff"] },
-  { to: "/payments", label: "Payments", icon: IconPayments, roles: ["owner", "staff"] },
-  { to: "/notifications", label: "Notifications", icon: IconBell, roles: ["owner", "staff"] },
-  { to: "/reports", label: "Reports", icon: IconReports, roles: ["owner"] },
-  { to: "/staff", label: "Staff", icon: IconStaff, roles: ["owner"] },
+  { to: "/dashboard", label: "nav.dashboard", icon: IconDashboard, roles: ["owner", "staff"] },
+  { to: "/clients", label: "nav.clients", icon: IconClients, roles: ["owner", "staff"] },
+  { to: "/invoices", label: "nav.invoices", icon: IconInvoice, roles: ["owner", "staff"] },
+  { to: "/payments", label: "nav.payments", icon: IconPayments, roles: ["owner", "staff"] },
+  { to: "/reports", label: "nav.reports", icon: IconReports, roles: ["owner"] },
+  { to: "/staff", label: "nav.staff", icon: IconStaff, roles: ["owner"] },
 ];
 
 export default function Sidebar() {
   const { user, role, logout } = useAuth();
+  const { t } = usePreferences();
   const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
   return (
@@ -49,24 +49,21 @@ export default function Sidebar() {
             }
           >
             <item.icon width={17} height={17} />
-            {item.label}
+            {t(item.label)}
           </NavLink>
         ))}
       </nav>
 
       <div className="border-t border-white/10 px-5 py-4">
-        <p className="text-xs text-white/40">Signed in as</p>
+        <p className="text-xs text-white/40">{t("common.signedInAs")}</p>
         <p className="text-sm font-semibold">{user?.name}</p>
         <p className="text-xs text-white/50">{user?.title}</p>
-        <NavLink to="/change-password" className="mt-3 block text-xs text-white/50 hover:text-white">
-          Change password
-        </NavLink>
         <button
           onClick={logout}
-          className="mt-2 flex items-center gap-2 text-xs text-white/50 hover:text-white"
+          className="mt-3 flex items-center gap-2 text-xs text-white/50 hover:text-white"
         >
           <IconLogout width={14} height={14} />
-          Log out
+          {t("common.logout")}
         </button>
       </div>
     </aside>

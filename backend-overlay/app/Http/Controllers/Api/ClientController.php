@@ -8,6 +8,8 @@ use App\Http\Resources\ClientResource;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\ClientOnboardingService;
+use App\Services\InvoiceScheduleService;
+use App\Services\NotificationService;
 use App\Services\TemporaryPasswordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,10 +19,19 @@ use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
-    /** GET /api/clients?q=maria&status=Overdue,Due Soon */
+    /**
+     * GET /api/clients?q=maria&status=Overdue,Due Soon&archived=1
+     * `archived=1` lists archived (soft-deleted) clients instead of active ones.
+     */
     public function index(Request $request)
     {
-        $clients = Client::with(['property', 'plan', 'invoices'])
+        $query = Client::with(['property', 'plan', 'invoices']);
+
+        if ($request->boolean('archived')) {
+            $query->onlyTrashed();
+        }
+
+        $clients = $query
             ->when($request->query('q'), function ($query, $q) {
                 $query->where(function ($w) use ($q) {
                     $w->where('name', 'like', "%{$q}%")
@@ -40,9 +51,15 @@ class ClientController extends Controller
         return ClientResource::collection($clients);
     }
 
-    /** POST /api/clients — creates the client, property, installment plan, invoice schedule and portal login. */
-    public function store(Request $request, ClientOnboardingService $onboarding): JsonResponse
+    /**
+     * POST /api/clients — creates the client, property, installment plan, invoice schedule and portal login,
+     * then emails the client their sign-in details. If the email can't be sent, the temporary password is
+     * returned once so staff can hand it over; otherwise it is never exposed.
+     */
+    public function store(Request $request, ClientOnboardingService $onboarding, NotificationService $notifications): JsonResponse
     {
+        $request->merge(['email' => strtolower(trim((string) $request->input('email')))]);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:190', Rule::unique('clients', 'email'), Rule::unique('users', 'email')],
@@ -59,9 +76,14 @@ class ClientController extends Controller
 
         $client->load(['property', 'plan', 'invoices', 'payments']);
 
-        // The temporary password is returned exactly once so staff can hand it to the client.
+        $welcome = $notifications->sendClientWelcome($client, $temporaryPassword);
+        $sent = $welcome->status === 'Sent';
+
         return (new ClientDetailResource($client))
-            ->additional(['temporaryPassword' => $temporaryPassword])
+            ->additional([
+                'welcomeEmail' => ['sent' => $sent, 'error' => $sent ? null : $welcome->error],
+                'temporaryPassword' => $sent ? null : $temporaryPassword,
+            ])
             ->response()
             ->setStatusCode(201);
     }
@@ -85,9 +107,13 @@ class ClientController extends Controller
         return new ClientDetailResource($client);
     }
 
-    public function update(Request $request, Client $client): ClientDetailResource
+    public function update(Request $request, Client $client, InvoiceScheduleService $schedule): ClientDetailResource
     {
         $user = $client->user;
+
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim((string) $request->input('email')))]);
+        }
 
         $data = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:120'],
@@ -100,9 +126,11 @@ class ClientController extends Controller
             'property_name' => ['sometimes', 'required', 'string', 'max:160'],
             'property_type' => ['sometimes', 'required', 'string', 'max:80'],
             'total_price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'monthly_amount' => ['sometimes', 'required', 'numeric', 'min:1'],
+            'term_months' => ['sometimes', 'required', 'integer', 'min:1', 'max:120'],
         ]);
 
-        DB::transaction(function () use ($data, $client, $user) {
+        DB::transaction(function () use ($data, $client, $user, $schedule) {
             $client->update(collect($data)->only(['name', 'email', 'phone'])->all());
 
             if ($user) {
@@ -118,12 +146,22 @@ class ClientController extends Controller
             if ($propertyFields && $client->property) {
                 $client->property->update($propertyFields);
             }
+
+            // Monthly amount / term live on the installment plan; rebuild the unpaid part of the schedule if they changed.
+            if ($plan = $client->plan) {
+                $monthly = (float) ($data['monthly_amount'] ?? $plan->monthly_amount);
+                $term = (int) ($data['term_months'] ?? $plan->term_months);
+
+                if (abs($monthly - (float) $plan->monthly_amount) > 0.004 || $term !== (int) $plan->term_months) {
+                    $schedule->reschedule($plan, round($monthly, 2), $term);
+                }
+            }
         });
 
         return $this->show($client->refresh());
     }
 
-    /** "Archive": keeps all history but hides the client and disables their portal login. */
+    /** "Archive": keeps all history but hides the client and disables their portal login. Reversible via restore(). */
     public function destroy(Client $client): Response
     {
         $client->load('invoices');
@@ -138,6 +176,36 @@ class ClientController extends Controller
                 $user->update(['is_active' => false]);
             }
             $client->delete();
+        });
+
+        return response()->noContent();
+    }
+
+    /** POST /api/clients/{id}/restore — bring an archived client (and their portal login) back. */
+    public function restore(int $id): ClientResource
+    {
+        $client = Client::onlyTrashed()->findOrFail($id);
+
+        DB::transaction(function () use ($client) {
+            $client->restore();
+            $client->user?->update(['is_active' => true]);
+        });
+
+        return new ClientResource($client->fresh(['property', 'plan', 'invoices']));
+    }
+
+    /** DELETE /api/clients/{id}/permanent — owner only; only works on archived clients and erases their invoices and payments. */
+    public function forceDelete(int $id): Response
+    {
+        $client = Client::onlyTrashed()->findOrFail($id);
+
+        DB::transaction(function () use ($client) {
+            User::where('client_id', $client->id)->get()->each(function (User $user) {
+                $user->tokens()->delete();
+                $user->delete();
+            });
+
+            $client->forceDelete(); // property, plan, invoices, payments and notification logs cascade
         });
 
         return response()->noContent();

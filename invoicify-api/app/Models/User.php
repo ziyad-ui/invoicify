@@ -35,6 +35,20 @@ class User extends Authenticatable
         return $this->belongsTo(Client::class);
     }
 
+    /** The shape the React app keeps in its session (login, /me, profile updates). */
+    public function sessionPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'role' => $this->role,
+            'title' => $this->title(),
+            'email' => $this->email,
+            'clientId' => $this->client_id,
+            'mustChangePassword' => (bool) $this->must_change_password,
+        ];
+    }
+
     public function title(): string
     {
         return match ($this->role) {

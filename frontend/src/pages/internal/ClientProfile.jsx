@@ -1,12 +1,14 @@
-import React, { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/PageHeader.jsx";
 import Card from "../../components/Card.jsx";
 import Table from "../../components/Table.jsx";
+import Tabs from "../../components/Tabs.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import Button from "../../components/Button.jsx";
 import Modal from "../../components/Modal.jsx";
-import FormField from "../../components/FormField.jsx";
+import ClientFormModal from "../../components/ClientFormModal.jsx";
+import RecordPaymentModal from "../../components/RecordPaymentModal.jsx";
 import LoadingState from "../../components/LoadingState.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import { useToast } from "../../components/Toast.jsx";
@@ -15,28 +17,28 @@ import { clientsApi } from "../../api/services.js";
 import { parseApiError } from "../../api/http.js";
 import { formatCurrency, formatDate } from "../../utils/format.js";
 
-// Payments are made OUTSIDE Invoicify (cash, bank transfer, check) and then recorded here.
-const PAYMENT_MODES = ["Cash", "Bank Transfer", "Check"];
-const PROPERTY_TYPES = ["Residential Condominium", "House and Lot", "Open Lot", "Beach Property"];
-const today = () => new Date().toISOString().slice(0, 10);
-
 export default function ClientProfile() {
   const { id } = useParams();
   const { data: client, loading, error, reload, setData } = useFetch(() => clientsApi.get(id), [id]);
   const { addToast } = useToast();
+  const [params, setParams] = useSearchParams();
 
+  const [tab, setTab] = useState("invoices"); // "invoices" | "payments"
   const [payOpen, setPayOpen] = useState(false);
-  const [payForm, setPayForm] = useState({ amount: "", mode: "Cash", reference: "", paidAt: today() });
-  const [payErrors, setPayErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetCreds, setResetCreds] = useState(null); // { email, password } shown once
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({});
-  const [editErrors, setEditErrors] = useState({});
+  // Links like /clients/5?pay=1 or ?edit=1 open that modal straight away.
+  useEffect(() => {
+    if (!client) return;
+    if (params.get("pay") && client.balance > 0) setPayOpen(true);
+    if (params.get("edit")) setEditOpen(true);
+    if (params.get("pay") || params.get("edit")) setParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client?.id]);
 
   const totalPaid = useMemo(
     () => client?.payments.reduce((s, p) => s + p.amount, 0) || 0,
@@ -62,37 +64,6 @@ export default function ClientProfile() {
     );
   }
 
-  function validatePayment() {
-    const next = {};
-    if (!payForm.amount || Number(payForm.amount) <= 0) next.amount = "Enter a valid payment amount.";
-    else if (Number(payForm.amount) > client.balance)
-      next.amount = `Amount can't exceed the outstanding balance of ${formatCurrency(client.balance)}.`;
-    if (payForm.mode !== "Cash" && !payForm.reference.trim())
-      next.reference = "Reference number is required for this payment mode.";
-    setPayErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  async function handleRecordPayment(e) {
-    e?.preventDefault();
-    if (!validatePayment()) return;
-    setSaving(true);
-    try {
-      const res = await clientsApi.recordPayment(client.id, payForm);
-      setData(res.data); // API returns the updated client (new balance, invoices, history)
-      setPayOpen(false);
-      setPayForm({ amount: "", mode: "Cash", reference: "", paidAt: today() });
-      setPayErrors({});
-      addToast(`Payment of ${formatCurrency(res.payment.amount)} recorded for ${client.name}.`, "success");
-    } catch (err) {
-      const { message, fields } = parseApiError(err);
-      if (Object.keys(fields).length) setPayErrors(fields);
-      else addToast(message, "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function handleResetPassword() {
     setResetting(true);
     try {
@@ -104,36 +75,6 @@ export default function ClientProfile() {
       addToast(parseApiError(err).message, "error");
     } finally {
       setResetting(false);
-    }
-  }
-
-  function openEdit() {
-    setEditForm({
-      name: client.name,
-      email: client.email,
-      phone: client.phone || "",
-      propertyName: client.property?.name || "",
-      propertyType: client.property?.type || PROPERTY_TYPES[0],
-      totalPrice: client.property?.totalPrice ?? 0,
-    });
-    setEditErrors({});
-    setEditOpen(true);
-  }
-
-  async function handleEdit(e) {
-    e?.preventDefault();
-    setSaving(true);
-    try {
-      const updated = await clientsApi.update(client.id, editForm);
-      setData(updated);
-      setEditOpen(false);
-      addToast("Client details updated.", "success");
-    } catch (err) {
-      const { message, fields } = parseApiError(err);
-      if (Object.keys(fields).length) setEditErrors(fields);
-      else addToast(message, "error");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -165,7 +106,7 @@ export default function ClientProfile() {
             <Button variant="outline" onClick={() => setResetOpen(true)}>
               Reset Portal Password
             </Button>
-            <Button variant="outline" onClick={openEdit}>
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
               Edit Details
             </Button>
             <Button onClick={() => setPayOpen(true)} disabled={client.balance <= 0}>
@@ -197,110 +138,58 @@ export default function ClientProfile() {
         </Card>
       </div>
 
-      <Card title="Invoices & Installments" className="mt-6">
-        <Table
-          columns={invoiceColumns}
-          rows={client.invoices}
-          emptyTitle="No invoices yet"
-          emptyBody="Invoices generated for this client's installment plan will appear here."
+      <Card className="mt-6">
+        <Tabs
+          className="mb-4"
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            { key: "invoices", label: "Invoices & Installments", count: client.invoices.length },
+            { key: "payments", label: "Payment History", count: client.payments.length },
+          ]}
         />
+        {tab === "invoices" ? (
+          <Table
+            columns={invoiceColumns}
+            rows={client.invoices}
+            maxHeight="26rem"
+            emptyTitle="No invoices yet"
+            emptyBody="Invoices generated for this client's installment plan will appear here."
+          />
+        ) : (
+          <Table
+            columns={paymentColumns}
+            rows={client.payments}
+            maxHeight="26rem"
+            emptyTitle="No payments recorded"
+            emptyBody="Payments recorded for this client will appear here."
+          />
+        )}
       </Card>
 
-      <Card title="Payment History" className="mt-6">
-        <Table
-          columns={paymentColumns}
-          rows={client.payments}
-          emptyTitle="No payments recorded"
-          emptyBody="Payments recorded for this client will appear here."
-        />
-      </Card>
-
-      <Modal
+      <RecordPaymentModal
         open={payOpen}
+        client={client}
         onClose={() => setPayOpen(false)}
-        title="Record Payment"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setPayOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleRecordPayment} loading={saving}>
-              Save Payment
-            </Button>
-          </>
-        }
-      >
-        <form className="space-y-4" onSubmit={handleRecordPayment}>
-          <p className="rounded-lg bg-accent-soft px-3 py-2 text-xs text-accent-dark">
-            Invoicify does not process online payments. Record a payment only after it has been
-            received and verified through cash, bank transfer, or check.
-          </p>
-          <FormField
-            label={`Amount (balance: ${formatCurrency(client.balance)})`}
-            type="number"
-            min="0"
-            placeholder="8500"
-            value={payForm.amount}
-            onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })}
-            error={payErrors.amount}
-          />
-          <FormField
-            as="select"
-            label="Payment mode"
-            value={payForm.mode}
-            onChange={(e) => setPayForm({ ...payForm, mode: e.target.value })}
-            error={payErrors.mode}
-          >
-            {PAYMENT_MODES.map((m) => (
-              <option key={m}>{m}</option>
-            ))}
-          </FormField>
-          <FormField
-            label="Reference number"
-            placeholder={payForm.mode === "Cash" ? "Optional for cash" : "e.g. BANK-55291"}
-            value={payForm.reference}
-            onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })}
-            error={payErrors.reference}
-          />
-          <FormField
-            label="Date received"
-            type="date"
-            max={today()}
-            value={payForm.paidAt}
-            onChange={(e) => setPayForm({ ...payForm, paidAt: e.target.value })}
-            error={payErrors.paidAt}
-          />
-        </form>
-      </Modal>
+        onSaved={(res) => {
+          setData(res.data); // API returns the updated client (new balance, invoices, history)
+          setPayOpen(false);
+          setTab("payments");
+          addToast(`Payment of ${formatCurrency(res.payment.amount)} recorded for ${client.name}.`, "success");
+        }}
+      />
 
-      <Modal
+      <ClientFormModal
         open={editOpen}
+        mode="edit"
+        client={client}
         onClose={() => setEditOpen(false)}
-        title="Edit Client Details"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setEditOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} loading={saving}>
-              Save Changes
-            </Button>
-          </>
-        }
-      >
-        <form className="space-y-4" onSubmit={handleEdit}>
-          <FormField label="Full name" value={editForm.name || ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} error={editErrors.name} />
-          <FormField label="Email address" type="email" value={editForm.email || ""} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} error={editErrors.email} />
-          <FormField label="Phone" value={editForm.phone || ""} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} error={editErrors.phone} />
-          <FormField label="Property" value={editForm.propertyName || ""} onChange={(e) => setEditForm({ ...editForm, propertyName: e.target.value })} error={editErrors.propertyName} />
-          <FormField as="select" label="Property type" value={editForm.propertyType || ""} onChange={(e) => setEditForm({ ...editForm, propertyType: e.target.value })} error={editErrors.propertyType}>
-            {PROPERTY_TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </FormField>
-          <FormField label="Total price (₱)" type="number" min="0" value={editForm.totalPrice ?? ""} onChange={(e) => setEditForm({ ...editForm, totalPrice: e.target.value })} error={editErrors.totalPrice} />
-        </form>
-      </Modal>
+        onSaved={(updated) => {
+          setData(updated);
+          setEditOpen(false);
+          addToast("Client details updated.", "success");
+        }}
+      />
 
       <Modal
         open={resetOpen}

@@ -12,6 +12,8 @@ class NotificationMail extends Mailable
         public string $subjectLine,
         public string $body,
         public string $clientName,
+        public ?string $actionUrl = null,
+        public ?string $actionLabel = null,
     ) {}
 
     public function envelope(): Envelope

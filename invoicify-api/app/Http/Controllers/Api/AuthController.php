@@ -11,15 +11,38 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * GET /api/auth/check-role?email=... — powers the login screen's "Signing in as ..." hint.
+     * Only returns a role for an active account; it is a convenience, never an authorization step
+     * (login below decides the role from the database). Throttled to slow down email probing.
+     */
+    public function checkRole(Request $request): JsonResponse
+    {
+        $email = trim((string) $request->query('email', ''));
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['role' => null]);
+        }
+
+        $user = $this->findByEmail($email);
+
+        if (! $user || ! $user->is_active) {
+            return response()->json(['role' => null]);
+        }
+
+        return response()->json(['role' => $user->role, 'label' => $user->title()]);
+    }
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-            'role' => ['required', 'in:owner,staff,client'],
+            // Optional and untrusted: the account's real role always comes from the database.
+            'role' => ['sometimes', 'nullable', 'in:owner,staff,client'],
         ]);
 
-        $user = User::where('email', $data['email'])->first();
+        $user = $this->findByEmail($data['email']);
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -33,10 +56,10 @@ class AuthController extends Controller
             ]);
         }
 
-        // The login screen has Owner / Staff / Client tabs; the account must match the chosen tab.
-        if ($user->role !== $data['role']) {
+        // Older clients may still send a role; if they do, it has to match the account.
+        if (! empty($data['role']) && $user->role !== $data['role']) {
             throw ValidationException::withMessages([
-                'role' => 'This account is not registered as '.strtolower($this->roleLabel($data['role'])).'. Choose the correct account type.',
+                'role' => 'This account is not registered as '.strtolower($this->roleLabel($data['role'])).'.',
             ]);
         }
 
@@ -44,13 +67,13 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $this->payload($user),
+            'user' => $user->sessionPayload(),
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $this->payload($request->user())]);
+        return response()->json(['user' => $request->user()->sessionPayload()]);
     }
 
     public function logout(Request $request): JsonResponse
@@ -60,17 +83,9 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out.']);
     }
 
-    private function payload(User $user): array
+    private function findByEmail(string $email): ?User
     {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'role' => $user->role,
-            'title' => $user->title(),
-            'email' => $user->email,
-            'clientId' => $user->client_id,
-            'mustChangePassword' => (bool) $user->must_change_password,
-        ];
+        return User::whereRaw('LOWER(email) = ?', [strtolower(trim($email))])->first();
     }
 
     private function roleLabel(string $role): string

@@ -67,7 +67,9 @@ your `php.ini` and restart.
 ## API overview
 | Method & path | Who | Purpose |
 |---|---|---|
-| POST `/api/login` | public | `{email, password, role}` → `{token, user}` |
+| POST `/api/login` | public | `{email, password}` → `{token, user}` (role comes from the account) |
+| GET `/api/auth/check-role?email=` | public, throttled | `{role}` — only drives the login screen hint |
+| POST `/api/user/update-profile`, `/update-email`, `/change-password` | any | self-service; email/password need `current_password` |
 | GET `/api/me`, POST `/api/logout` | any | session |
 | PUT `/api/password` | any | change your own password (`current_password`, `password`, `password_confirmation`) |
 | GET `/api/dashboard` | owner, staff | stats (revenue figures owner-only) |
@@ -77,7 +79,10 @@ your `php.ini` and restart.
 | GET `/api/payments` | owner, staff | transaction history |
 | GET `/api/notifications`, POST `/api/notifications/{id}/resend` | owner, staff | email activity |
 | GET `/api/reports/summary`, `/api/reports/export` | **owner** | report + Excel download |
-| GET `/api/portal/me` | client | the client's own record only |
+| GET `/api/portal/me`, `/api/portal/notifications` | client | the client's own record / emails sent to them |
+| GET `/api/clients?archived=1`, POST `/api/clients/{id}/restore` | owner, staff | archives |
+| DELETE `/api/clients/{id}/permanent` | **owner** | erase an archived client |
+| DELETE `/api/staff/{id}` | **owner** | delete a staff login (never the owner) |
 
 ## First login for a new client
 `POST /api/clients` creates the client, property, installment plan, full invoice schedule, **and** a

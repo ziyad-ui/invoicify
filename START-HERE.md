@@ -25,7 +25,7 @@ npm run dev
 Open http://localhost:5173
 
 ## 4. Sign in (demo accounts, password for all: `password123`)
-| Tab on login screen | Email |
+| Account type (detected automatically from the email) | Email |
 |---|---|
 | Owner | owner@loverealty.com |
 | Staff | staff@loverealty.com |
@@ -34,6 +34,13 @@ Open http://localhost:5173
 Tip: if you already have an older copy, copy its `vendor` folder (inside `invoicify-api`) and `node_modules` folder (inside `frontend`) into this one to skip the two install commands.
 
 ## What is new in this version
+- **Smart sign-in** (no Owner/Staff/Client tabs), top-right **notification bell** and **hamburger menu** (Profile, Settings, About) for every role
+- Clients: status filter, **Archives** (restore / delete permanently), edit opens directly, auto-calculated monthly amount, tabbed client page
+- New clients are **emailed their portal login automatically**
+- Staff: edit, reset (emailed) and **delete**; line-graph report, labelled dashboard chart
+- Set `FRONTEND_URL` in `invoicify-api/.env` so the email's sign-in link points at your site
+
+### Earlier changes
 - Clients -> **Import Spreadsheet** (add many clients from an Excel/CSV file)
 - Owner -> **Staff** page (add staff, reset password, deactivate)
 - **Change password** link for everyone (temporary passwords must be changed at first sign-in)

@@ -35,6 +35,7 @@ class ClientResource extends JsonResource
             'balance' => $this->balance,
             'dueDate' => $this->next_due_date?->toDateString(),
             'status' => $this->status,
+            'archivedAt' => $this->deleted_at?->toIso8601String(),
         ];
     }
 }

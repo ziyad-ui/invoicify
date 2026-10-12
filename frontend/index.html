@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invoicify — Love Realty</title>
+    <script>
+      // Apply the saved theme before the first paint so dark mode doesn't flash white.
+      try {
+        if (localStorage.getItem("invoicify_theme") === "dark") document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

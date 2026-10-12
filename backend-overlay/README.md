@@ -9,20 +9,15 @@ PHP 8.2+, Composer, MySQL (XAMPP/Laragon is fine).
 
 ## Setup — Windows (recommended path)
 
-This folder normally lives inside `invoicify-system/`, alongside `frontend/` — if you got this as
-part of the combined download, just run `..\setup.ps1` from `invoicify-system/` instead of the steps
-below; it does this automatically for both the backend and frontend. The steps here are for running
-the backend on its own.
-
-1. Make sure this folder sits **next to** (not inside) the project folder you want the API built in,
-   e.g.:
+1. Extract this zip so `invoicify-backend-overlay` sits **next to** (not inside) the project folder
+   you want the API built in, e.g.:
    ```
-   invoicify-system\
-     backend-overlay\   <- this folder
-     invoicify-api\     <- setup.ps1 will create/use this
-     frontend\          <- the React app
+   INVOICIFY SYSTEM\
+     invoicify-backend-overlay\   <- this zip, extracted here
+     invoicify-api\               <- setup.ps1 will create/use this
+     invoicify\                   <- the frontend, from the other zip
    ```
-2. Open PowerShell in `backend-overlay` and run:
+2. Open PowerShell in `invoicify-backend-overlay` and run:
    ```powershell
    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    .\setup.ps1
@@ -72,7 +67,9 @@ your `php.ini` and restart.
 ## API overview
 | Method & path | Who | Purpose |
 |---|---|---|
-| POST `/api/login` | public | `{email, password, role}` → `{token, user}` |
+| POST `/api/login` | public | `{email, password}` → `{token, user}` (role comes from the account) |
+| GET `/api/auth/check-role?email=` | public, throttled | `{role}` — only drives the login screen hint |
+| POST `/api/user/update-profile`, `/update-email`, `/change-password` | any | self-service; email/password need `current_password` |
 | GET `/api/me`, POST `/api/logout` | any | session |
 | PUT `/api/password` | any | change your own password (`current_password`, `password`, `password_confirmation`) |
 | GET `/api/dashboard` | owner, staff | stats (revenue figures owner-only) |
@@ -82,7 +79,10 @@ your `php.ini` and restart.
 | GET `/api/payments` | owner, staff | transaction history |
 | GET `/api/notifications`, POST `/api/notifications/{id}/resend` | owner, staff | email activity |
 | GET `/api/reports/summary`, `/api/reports/export` | **owner** | report + Excel download |
-| GET `/api/portal/me` | client | the client's own record only |
+| GET `/api/portal/me`, `/api/portal/notifications` | client | the client's own record / emails sent to them |
+| GET `/api/clients?archived=1`, POST `/api/clients/{id}/restore` | owner, staff | archives |
+| DELETE `/api/clients/{id}/permanent` | **owner** | erase an archived client |
+| DELETE `/api/staff/{id}` | **owner** | delete a staff login (never the owner) |
 
 ## First login for a new client
 `POST /api/clients` creates the client, property, installment plan, full invoice schedule, **and** a

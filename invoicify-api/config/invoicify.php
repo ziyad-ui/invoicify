@@ -15,6 +15,9 @@ return [
     // Once reached, the rest wait for the next scheduled run instead of failing at the provider.
     'daily_email_limit' => (int) env('INVOICIFY_DAILY_EMAIL_LIMIT', 0),
 
+    // Where the React app lives. Used for the sign-in link in credential emails.
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
     // Only used by `php artisan db:seed` to create the first (owner) login.
     'owner' => [
         'name' => env('OWNER_NAME', 'Owner'),

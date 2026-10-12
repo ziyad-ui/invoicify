@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\NotificationService;
 use App\Services\TemporaryPasswordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
@@ -78,15 +81,34 @@ class StaffController extends Controller
         return response()->json(['data' => $this->payload($staff->fresh())]);
     }
 
-    /** POST /api/staff/{staff}/reset-password */
-    public function resetPassword(User $staff, TemporaryPasswordService $passwords): JsonResponse
+    /** POST /api/staff/{staff}/reset-password — new temporary password; emailed to the staff member and shown to the owner once. */
+    public function resetPassword(User $staff, TemporaryPasswordService $passwords, NotificationService $notifications): JsonResponse
     {
         $this->ensureStaff($staff);
 
+        $temporaryPassword = $passwords->reset($staff);
+
         return response()->json([
             'data' => $this->payload($staff->fresh()),
-            'temporaryPassword' => $passwords->reset($staff),
+            'temporaryPassword' => $temporaryPassword,
+            'emailed' => $notifications->sendStaffCredentials($staff, $temporaryPassword),
         ]);
+    }
+
+    /**
+     * DELETE /api/staff/{staff} — permanently removes a staff login. Payments they recorded keep their history
+     * (the "recorded by" link is simply cleared). The owner account can never be deleted here.
+     */
+    public function destroy(User $staff): Response
+    {
+        $this->ensureStaff($staff);
+
+        DB::transaction(function () use ($staff) {
+            $staff->tokens()->delete();
+            $staff->delete();
+        });
+
+        return response()->noContent();
     }
 
     private function ensureStaff(User $user): void

@@ -23,6 +23,7 @@ class ReportService
 
             return [
                 'month' => $month->format('M'),
+                'label' => $month->format('F Y'),
                 'amount' => (float) ($totals[$month->format('Y-m')] ?? 0),
             ];
         })->all();

@@ -28,10 +28,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Throws the axios error on failure so the login form can show field messages.
-  async function login({ role, email, password }) {
+  async function login({ email, password }) {
     setLoading(true);
     try {
-      const res = await authApi.login({ role, email, password });
+      const res = await authApi.login({ email, password });
       tokenStore.set(res.token);
       setUser(res.user);
       return res.user;
@@ -55,8 +55,13 @@ export function AuthProvider({ children }) {
     setUser((u) => (u ? { ...u, mustChangePassword: false } : u));
   }
 
+  // Merge fresh fields (name, email…) returned by the profile endpoints into the session user.
+  function updateUser(patch) {
+    setUser((u) => (u ? { ...u, ...patch } : u));
+  }
+
   const value = useMemo(
-    () => ({ user, role: user?.role || null, loading, initializing, login, logout, markPasswordChanged }),
+    () => ({ user, role: user?.role || null, loading, initializing, login, logout, markPasswordChanged, updateUser }),
     [user, loading, initializing]
   );
 

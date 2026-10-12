@@ -5,7 +5,7 @@ import Button from "../components/Button.jsx";
 import FormField from "../components/FormField.jsx";
 import { useToast } from "../components/Toast.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { authApi } from "../api/services.js";
+import { profileApi } from "../api/services.js";
 import { parseApiError } from "../api/http.js";
 
 /**
@@ -42,7 +42,7 @@ export default function ChangePassword() {
     if (!validate()) return;
     setSaving(true);
     try {
-      await authApi.changePassword(form);
+      await profileApi.changePassword(form);
       markPasswordChanged();
       addToast("Your password was updated.", "success");
       navigate(home, { replace: true });

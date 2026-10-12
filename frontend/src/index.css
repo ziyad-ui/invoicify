@@ -32,3 +32,61 @@ body {
   background: #d1d5db;
   border-radius: 999px;
 }
+
+/* ------------------------------------------------------------------
+   Dark theme. The app is written with light-mode utility classes, so the
+   dark palette is applied here by re-mapping those classes under `.dark`
+   (toggled from Settings in the top-right menu). One place to tune it.
+   ------------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+.dark body { background-color: #0f1219; color: #e5e7eb; }
+.dark .bg-surface { background-color: #0f1219; }
+.dark .bg-white { background-color: #171b26; }
+.dark .bg-gray-50 { background-color: #1b2030; }
+.dark .bg-gray-100 { background-color: #222838; }
+.dark .hover\:bg-gray-50:hover { background-color: #1b2030; }
+.dark .hover\:bg-gray-100:hover { background-color: #222838; }
+
+.dark .text-ink { color: #f3f4f6; }
+.dark .hover\:text-ink:hover { color: #ffffff; }
+.dark .text-gray-200 { color: #2a3040; }
+.dark .text-gray-300 { color: #4b5563; }
+.dark .text-gray-400 { color: #8b93a3; }
+.dark .text-gray-500 { color: #9ca3af; }
+.dark .text-gray-600 { color: #b6bdca; }
+
+.dark .border-gray-100 { border-color: #20263a; }
+.dark .border-gray-200 { border-color: #262b38; }
+.dark .border-gray-300 { border-color: #343b4d; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #20263a; }
+
+.dark .text-accent { color: #8b93ff; }
+.dark .text-accent-dark { color: #c7c9ff; }
+.dark .bg-accent-soft { background-color: #22264a; }
+
+.dark .bg-red-50 { background-color: #3a1e22; }
+.dark .border-red-200 { border-color: #5b2a30; }
+.dark .text-red-600 { color: #f87171; }
+.dark .text-red-700 { color: #fca5a5; }
+.dark .bg-amber-50 { background-color: #3a2f14; }
+.dark .text-amber-800 { color: #fcd34d; }
+
+.dark .bg-status-okBg { background-color: #143d27; }
+.dark .text-status-okText { color: #6ee7a1; }
+.dark .bg-status-overdueBg { background-color: #3f1d1d; }
+.dark .text-status-overdueText { color: #fca5a5; }
+.dark .bg-status-dueBg { background-color: #3d2e0e; }
+.dark .text-status-dueText { color: #fcd34d; }
+.dark .bg-status-paidBg { background-color: #2f3650; }
+
+.dark input,
+.dark select,
+.dark textarea { background-color: #0f1219; color: #f3f4f6; }
+.dark input[type="file"] { background-color: transparent; }
+.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+.dark .scrollbar-thin::-webkit-scrollbar-thumb { background: #374151; }

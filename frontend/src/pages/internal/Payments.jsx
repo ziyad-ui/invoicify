@@ -30,7 +30,7 @@ export default function Payments() {
       header: "",
       className: "text-right",
       render: (c) => (
-        <Link to={`/clients/${c.id}`}>
+        <Link to={`/clients/${c.id}?pay=1`}>
           <Button size="sm" variant="outline">
             Record Payment
           </Button>

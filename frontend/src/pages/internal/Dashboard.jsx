@@ -9,6 +9,7 @@ import LoadingState from "../../components/LoadingState.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
 import useFetch from "../../hooks/useFetch.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { usePreferences } from "../../context/PreferencesContext.jsx";
 import { dashboardApi } from "../../api/services.js";
 import { formatCurrency, formatDate } from "../../utils/format.js";
 
@@ -16,6 +17,7 @@ import { formatCurrency, formatDate } from "../../utils/format.js";
 // staff receive operational counts + the follow-up list only.
 export default function Dashboard() {
   const { role } = useAuth();
+  const { t } = usePreferences();
   const { data, loading, error, reload } = useFetch(() => dashboardApi.get(), []);
 
   if (loading) {
@@ -28,80 +30,72 @@ export default function Dashboard() {
   if (error) {
     return (
       <div>
-        <PageHeader title="Dashboard" />
+        <PageHeader title={t("dash.title")} />
         <ErrorState error={error} onRetry={reload} />
       </div>
     );
   }
 
-  const { stats, clients, monthlyCollections } = data;
+  const { stats, clients = [], monthlyCollections = [], period } = data;
 
   return (
     <div>
-      <PageHeader title="Dashboard" />
+      <PageHeader title={t("dash.title")} />
 
       {role === "owner" ? (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard label="Revenue Collected" value={formatCurrency(stats.revenueCollected)} tone="dark" />
-            <StatCard label="Outstanding Balance" value={formatCurrency(stats.outstandingBalance)} />
-            <StatCard label="Active Clients" value={stats.activeClients} />
-            <StatCard label="Pending Payments" value={stats.pendingPayments} />
+            <StatCard
+              label={t("dash.revenuePerMonth")}
+              value={formatCurrency(stats.revenueThisMonth)}
+              hint={period}
+              tone="dark"
+            />
+            <StatCard label={t("dash.outstanding")} value={formatCurrency(stats.outstandingBalance)} />
+            <StatCard label={t("dash.activeClients")} value={stats.activeClients} />
+            <StatCard label={t("dash.pending")} value={stats.pendingPayments} />
           </div>
 
-          <Card title="Monthly Collections" className="mt-6">
+          <Card title={t("dash.monthly")} className="mt-6">
             <BarChart data={monthlyCollections} />
           </Card>
         </>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard label="Active Clients" value={stats.activeClients} />
-          <StatCard label="Pending Payments" value={stats.pendingPayments} />
-          <StatCard label="Overdue Accounts" value={stats.overdueAccounts} />
-          <StatCard label="Due Soon" value={stats.dueSoon} />
-        </div>
-      )}
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatCard label={t("dash.activeClients")} value={stats.activeClients} />
+            <StatCard label={t("dash.pending")} value={stats.pendingPayments} />
+            <StatCard label={t("dash.overdue")} value={stats.overdueAccounts} />
+            <StatCard label={t("dash.dueSoon")} value={stats.dueSoon} />
+          </div>
 
-      <Card title={role === "owner" ? "Status Overview" : "Needs Follow-up"} className="mt-6">
-        {role === "owner" ? (
-          clients.length === 0 ? (
-            <p className="text-sm text-gray-400">No clients yet.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {clients.map((c) => (
-                <span
-                  key={c.id}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 py-1 pl-3 pr-1 text-xs"
-                >
-                  {c.name} <StatusBadge status={c.status} />
-                </span>
-              ))}
-            </div>
-          )
-        ) : clients.length === 0 ? (
-          <p className="text-sm text-gray-400">Every account is current. Nothing needs follow-up.</p>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {clients.map((c) => (
-              <li key={c.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium text-ink">{c.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {c.property?.name} · Due {formatDate(c.dueDate)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="num text-sm font-medium">{formatCurrency(c.balance)}</span>
-                  <StatusBadge status={c.status} />
-                  <Link to={`/clients/${c.id}`} className="text-xs font-medium text-accent hover:underline">
-                    View
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+          <Card title={t("dash.followUp")} className="mt-6">
+            {clients.length === 0 ? (
+              <p className="text-sm text-gray-400">{t("dash.allCurrent")}</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {clients.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium text-ink">{c.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {c.property?.name} · Due {formatDate(c.dueDate)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="num text-sm font-medium">{formatCurrency(c.balance)}</span>
+                      <StatusBadge status={c.status} />
+                      <Link to={`/clients/${c.id}`} className="text-xs font-medium text-accent hover:underline">
+                        View
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
     </div>
   );
 }

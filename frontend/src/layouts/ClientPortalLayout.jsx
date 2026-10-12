@@ -1,53 +1,52 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
-
-const NAV_ITEMS = [
-  { to: "/portal/dashboard", label: "Dashboard" },
-  { to: "/portal/invoices", label: "Invoices" },
-  { to: "/portal/payments", label: "Payment History" },
-  { to: "/portal/profile", label: "Profile" },
-];
+import TopBar from "../components/TopBar.jsx";
+import { usePreferences } from "../context/PreferencesContext.jsx";
+import { portalApi } from "../api/services.js";
 
 export default function ClientPortalLayout() {
-  const { user, logout } = useAuth();
+  const { t } = usePreferences();
+  const load = useCallback(() => portalApi.notifications(), []);
+
+  const navItems = [
+    { to: "/portal/dashboard", label: t("nav.dashboard") },
+    { to: "/portal/invoices", label: t("nav.portalInvoices") },
+    { to: "/portal/payments", label: t("nav.portalPayments") },
+    { to: "/portal/profile", label: t("nav.portalAccount") },
+  ];
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center gap-6">
-          <p className="text-base font-bold text-ink">
-            Invoicify <span className="font-normal text-gray-400">— Client Portal</span>
-          </p>
-          <nav className="hidden gap-1 sm:flex">
-            {NAV_ITEMS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-1.5 text-sm transition-colors ${
-                    isActive ? "bg-accent-soft font-medium text-accent" : "text-gray-500 hover:text-ink"
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-gray-500">
-          <span className="font-medium text-ink">{user?.name}</span>
-          <span>·</span>
-          <NavLink to="/change-password" className="underline hover:text-ink">
-            Change password
-          </NavLink>
-          <span>·</span>
-          <button onClick={logout} className="underline hover:text-ink">
-            Log out
-          </button>
-        </div>
-      </header>
-      <main className="mx-auto max-w-4xl px-6 py-8">
+      <TopBar
+        navItems={navItems}
+        loadNotifications={load}
+        left={
+          <>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">IN</span>
+              <p className="whitespace-nowrap text-base font-bold text-ink">
+                Invoicify <span className="hidden font-normal text-gray-400 md:inline">— {t("header.portal")}</span>
+              </p>
+            </div>
+            <nav className="hidden gap-1 sm:flex">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
+                      isActive ? "bg-accent-soft font-medium text-accent" : "text-gray-500 hover:text-ink"
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          </>
+        }
+      />
+      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <Outlet />
       </main>
     </div>

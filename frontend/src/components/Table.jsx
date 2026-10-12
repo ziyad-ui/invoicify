@@ -5,15 +5,22 @@ import EmptyState from "./EmptyState.jsx";
 /**
  * columns: [{ key, header, render?(row), className? }]
  * rows: array of data objects (must include a unique `id` or `key`)
+ * maxHeight: optional CSS height (e.g. "26rem"); the body scrolls inside it and the header stays pinned.
  */
-export default function Table({ columns, rows, loading, emptyTitle, emptyBody, rowKey = "id" }) {
+export default function Table({ columns, rows, loading, emptyTitle, emptyBody, rowKey = "id", maxHeight }) {
   return (
-    <div className="overflow-x-auto scrollbar-thin">
+    <div
+      className={`overflow-x-auto scrollbar-thin ${maxHeight ? "overflow-y-auto" : ""}`}
+      style={maxHeight ? { maxHeight } : undefined}
+    >
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
             {columns.map((col) => (
-              <th key={col.key} className={`px-2 py-3 ${col.className || ""}`}>
+              <th
+                key={col.key}
+                className={`px-2 py-3 ${maxHeight ? "sticky top-0 z-10 bg-white shadow-[inset_0_-1px_0_rgba(128,128,128,0.25)]" : ""} ${col.className || ""}`}
+              >
                 {col.header}
               </th>
             ))}
@@ -34,10 +41,7 @@ export default function Table({ columns, rows, loading, emptyTitle, emptyBody, r
             </tr>
           ) : (
             rows.map((row) => (
-              <tr
-                key={row[rowKey]}
-                className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
-              >
+              <tr key={row[rowKey]} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                 {columns.map((col) => (
                   <td key={col.key} className={`px-2 py-3.5 align-middle ${col.className || ""}`}>
                     {col.render ? col.render(row) : row[col.key]}
