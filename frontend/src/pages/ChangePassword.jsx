@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Card from "../components/Card.jsx";
+import AuthShell from "../components/AuthShell.jsx";
 import Button from "../components/Button.jsx";
 import FormField from "../components/FormField.jsx";
 import { useToast } from "../components/Toast.jsx";
@@ -56,18 +56,16 @@ export default function ChangePassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-10">
-      <div className="w-full max-w-md">
-        <p className="mb-4 text-center text-base font-bold text-ink">Invoicify</p>
-        <Card>
-          <h1 className="text-lg font-semibold text-ink">{forced ? "Set a new password" : "Change password"}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {forced
-              ? "You signed in with a temporary password. Choose your own password to continue."
-              : "You'll stay signed in here and be signed out on your other devices."}
-          </p>
+    <AuthShell wide>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">{forced ? "Set a new password" : "Change password"}</h1>
+        <p className="mt-1.5 text-sm text-gray-500">
+          {forced
+            ? "You signed in with a temporary password. Choose your own password to continue."
+            : "You'll stay signed in here and be signed out on your other devices."}
+        </p>
 
-          <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <FormField
               label={forced ? "Temporary password" : "Current password"}
               type="password"
@@ -107,8 +105,7 @@ export default function ChangePassword() {
               </Button>
             </div>
           </form>
-        </Card>
       </div>
-    </div>
+    </AuthShell>
   );
 }

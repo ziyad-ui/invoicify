@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
 import Button from "./Button.jsx";
 import FormField from "./FormField.jsx";
+import LocationPicker from "./map/LocationPicker.jsx";
+import { IconMapPin } from "./icons.jsx";
 import { useToast } from "./Toast.jsx";
 import { clientsApi } from "../api/services.js";
 import { parseApiError } from "../api/http.js";
@@ -18,6 +20,11 @@ const EMPTY = {
   termMonths: "12",
   monthlyAmount: "",
   firstDueDate: "",
+  // Optional map pin
+  latitude: "",
+  longitude: "",
+  address: "",
+  locationNotes: "",
 };
 
 /** MONTHLY = TOTAL PRICE / TERM, rounded to centavos; "" when either number isn't usable yet. */
@@ -40,6 +47,7 @@ export default function ClientFormModal({ open, mode = "add", client, onClose, o
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
 
   // Fresh form each time the modal opens (pre-filled from the client when editing).
   useEffect(() => {
@@ -56,11 +64,21 @@ export default function ClientFormModal({ open, mode = "add", client, onClose, o
         termMonths: String(client.plan?.termMonths ?? ""),
         monthlyAmount: String(client.plan?.monthly ?? ""),
         firstDueDate: client.plan?.startDate || "",
+        latitude: client.property?.latitude ?? "",
+        longitude: client.property?.longitude ?? "",
+        address: client.property?.address || "",
+        locationNotes: client.property?.locationNotes || "",
       });
+      setMapOpen(client.property?.latitude != null); // an existing pin opens the map straight away
     } else {
       setForm(EMPTY);
+      setMapOpen(false);
     }
   }, [open, editing, client]);
+
+  // The map picker reports several fields at once (and asynchronously), so merge into the latest state.
+  const patchForm = (patch) => setForm((f) => ({ ...f, ...patch }));
+  const hasPin = form.latitude !== "" && form.longitude !== "";
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -106,7 +124,7 @@ export default function ClientFormModal({ open, mode = "add", client, onClose, o
       open={open}
       onClose={onClose}
       title={editing ? "Edit Client Details" : "Add New Client"}
-      width="max-w-lg"
+      width="max-w-2xl"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -185,6 +203,36 @@ export default function ClientFormModal({ open, mode = "add", client, onClose, o
             ? " Changing the monthly amount or term updates only the installments that have no payment yet."
             : " Saving generates the full monthly invoice schedule and emails the client their portal login."}
         </p>
+
+        {/* Optional: Property location / map pin */}
+        <div className="col-span-6 rounded-xl border border-gray-200">
+          <button
+            type="button"
+            onClick={() => setMapOpen((o) => !o)}
+            aria-expanded={mapOpen}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                <IconMapPin width={18} height={18} />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-ink">
+                  Property location / map pin <span className="ml-1 text-xs font-normal text-gray-400">Optional</span>
+                </span>
+                <span className="block text-xs text-gray-500">
+                  {hasPin ? "Pin set. The client will see it in their portal." : "Search an address or click the map to mark the exact lot or unit."}
+                </span>
+              </span>
+            </span>
+            <span className="text-xs font-medium text-accent">{mapOpen ? "Hide" : hasPin ? "Edit" : "Add"}</span>
+          </button>
+          {mapOpen && (
+            <div className="border-t border-gray-200 p-4">
+              <LocationPicker value={form} onChange={patchForm} errors={errors} />
+            </div>
+          )}
+        </div>
       </form>
     </Modal>
   );

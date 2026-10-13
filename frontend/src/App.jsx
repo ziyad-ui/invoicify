@@ -4,6 +4,8 @@ import { useAuth } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 import InternalLayout from "./layouts/InternalLayout.jsx";
@@ -22,6 +24,7 @@ import PortalDashboard from "./pages/portal/PortalDashboard.jsx";
 import PortalProfile from "./pages/portal/PortalProfile.jsx";
 import PortalInvoices from "./pages/portal/PortalInvoices.jsx";
 import PortalPayments from "./pages/portal/PortalPayments.jsx";
+import PortalProperty from "./pages/portal/PortalProperty.jsx";
 
 export default function App() {
   const { role, initializing } = useAuth();
@@ -35,6 +38,8 @@ export default function App() {
         element={<Navigate to={role ? (role === "client" ? "/portal/dashboard" : "/dashboard") : "/login"} replace />}
       />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/change-password"
         element={
@@ -83,6 +88,7 @@ export default function App() {
         }
       >
         <Route path="/portal/dashboard" element={<PortalDashboard />} />
+        <Route path="/portal/property" element={<PortalProperty />} />
         <Route path="/portal/profile" element={<PortalProfile />} />
         <Route path="/portal/invoices" element={<PortalInvoices />} />
         <Route path="/portal/payments" element={<PortalPayments />} />

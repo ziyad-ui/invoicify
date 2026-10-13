@@ -1,6 +1,7 @@
 import React from "react";
 import Modal from "./Modal.jsx";
 import Button from "./Button.jsx";
+import { LogoMark } from "./Logo.jsx";
 import { usePreferences } from "../context/PreferencesContext.jsx";
 
 const VERSION = "2.0";
@@ -12,7 +13,7 @@ export default function AboutModal({ open, onClose }) {
     <Modal open={open} onClose={onClose} title={t("about.title")} footer={<Button onClick={onClose}>{t("common.close")}</Button>}>
       <div className="space-y-4 text-sm text-gray-600">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">IN</span>
+          <LogoMark size={40} />
           <div>
             <p className="font-semibold text-ink">Invoicify</p>
             <p className="text-xs text-gray-500">{t("about.tagline")}</p>

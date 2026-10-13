@@ -26,6 +26,11 @@ class ClientResource extends JsonResource
                 'name' => $property->name,
                 'type' => $property->type,
                 'totalPrice' => (float) $property->total_price,
+                // Map pin: null until staff drop one
+                'latitude' => $property->latitude !== null ? (float) $property->latitude : null,
+                'longitude' => $property->longitude !== null ? (float) $property->longitude : null,
+                'address' => $property->address,
+                'locationNotes' => $property->location_notes,
             ] : null,
             'plan' => $plan ? [
                 'monthly' => (float) $plan->monthly_amount,

@@ -5,6 +5,7 @@ import React from "react";
  * and error styling match across all modals.
  *  - `hint`   small helper text under the field (hidden while there is an error)
  *  - `prefix` short adornment inside the field, e.g. "₱" for money
+ *  - `suffix` element on the right inside the field, e.g. a Show/Hide password button
  */
 const BASE =
   "w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-gray-400 focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400";
@@ -14,6 +15,7 @@ export default function FormField({
   error,
   hint,
   prefix,
+  suffix,
   as = "input",
   children,
   className = "",
@@ -29,6 +31,11 @@ export default function FormField({
         <select className={`${BASE} ${border}`} {...props}>
           {children}
         </select>
+      ) : suffix ? (
+        <div className="relative">
+          <Tag className={`${BASE} ${border} pr-16`} {...props} />
+          <span className="absolute inset-y-0 right-2 flex items-center">{suffix}</span>
+        </div>
       ) : prefix ? (
         <div className="relative">
           <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-400">

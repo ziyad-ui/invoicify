@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
 import { IconMenu, IconUser, IconSettings, IconInfo, IconLogout } from "./icons.jsx";
 import ProfileDrawer from "./ProfileDrawer.jsx";
 import SettingsModal from "./SettingsModal.jsx";
@@ -9,9 +8,8 @@ import { usePreferences } from "../context/PreferencesContext.jsx";
 
 /**
  * Hamburger (☰) menu in the top-right of every view: Profile, Settings, About, Log out.
- * `navItems` ([{to,label}]) are listed first on small screens, where the portal's inline nav is hidden.
  */
-export default function UserMenu({ navItems = [] }) {
+export default function UserMenu() {
   const { user, logout } = useAuth();
   const { t } = usePreferences();
   const [open, setOpen] = useState(false);
@@ -61,15 +59,6 @@ export default function UserMenu({ navItems = [] }) {
             <p className="truncate text-xs text-gray-500">{user?.email}</p>
           </div>
 
-          {navItems.length > 0 && (
-            <div className="border-b border-gray-100 py-1 sm:hidden">
-              {navItems.map((n) => (
-                <NavLink key={n.to} to={n.to} onClick={() => setOpen(false)} className={item}>
-                  {n.label}
-                </NavLink>
-              ))}
-            </div>
-          )}
 
           <button className={item} onClick={() => choose("profile")}>
             <IconUser width={17} height={17} className="text-gray-400" /> {t("menu.profile")}

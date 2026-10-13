@@ -54,3 +54,38 @@ Right now emails are only written to `invoicify-api/storage/logs/laravel.log`. T
 Follow **DEPLOYMENT.md**. For an empty production install do NOT use the demo seeder - put `OWNER_EMAIL` and `OWNER_PASSWORD` in `.env` and run `php artisan db:seed --force`.
 
 NOTE: the `.env` in this zip is for local demo use only. On a real server, create a fresh one from `.env.production.example` and run `php artisan key:generate`.
+
+---
+
+## Forgot password
+
+The sign-in page has a **Forgot password?** link. The person enters their account email, receives a one-time link
+(valid 60 minutes), and chooses a new password at `/reset-password`. This works for Owner, Staff and Client accounts.
+
+- **Local testing (default):** `MAIL_MAILER=log` means the email is not really sent. Open
+  `invoicify-api/storage/logs/laravel.log`, find the "Reset your Invoicify password" message and copy the
+  `http://localhost:5173/reset-password?...` link into your browser.
+- **Real emails:** set `MAIL_MAILER=smtp` and the `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`,
+  `MAIL_FROM_ADDRESS` values in `invoicify-api/.env` (for Gmail, use an App Password), then run
+  `php artisan config:clear` and restart `php artisan serve`.
+- `FRONTEND_URL` in `invoicify-api/.env` decides the address used inside the link. Change it when you deploy.
+
+---
+
+## Property map pins (new in V4)
+
+Staff and owners can drop an optional map pin when adding or editing a client, and clients see it under
+**Property Location** in their portal. It uses Leaflet + OpenStreetMap, so there is no API key and nothing to pay for.
+
+**If you already have V3 running, update with:**
+```powershell
+# backend  (invoicify-api)
+php artisan migrate            # adds latitude, longitude, address, location_notes to `properties`
+
+# frontend (frontend)
+npm install                    # installs the new "leaflet" package
+```
+For fresh demo data with sample pins, run `php artisan migrate:fresh --seed --seeder=DemoSeeder` instead
+(all demo clients get a pin except Liza Fernandez, so you can see the "not pinned yet" screen).
+
+The map needs an internet connection to load tiles and to search addresses (OpenStreetMap's free Nominatim service).

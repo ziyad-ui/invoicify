@@ -7,7 +7,7 @@ export default function StatCard({ label, value, tone = "default", hint }) {
       : "bg-white text-ink border border-gray-200";
 
   return (
-    <div className={`rounded-xl p-5 ${toneClasses}`}>
+    <div className={`rounded-xl p-5 shadow-sm ${toneClasses}`}>
       <p
         className={`text-xs font-medium uppercase tracking-wide ${
           tone === "dark" ? "text-white/60" : "text-gray-500"

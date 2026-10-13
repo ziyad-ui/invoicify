@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/Button.jsx";
+import AuthShell from "../components/AuthShell.jsx";
 import FormField from "../components/FormField.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePreferences } from "../context/PreferencesContext.jsx";
 import { useToast } from "../components/Toast.jsx";
 import { authApi } from "../api/services.js";
 import { parseApiError } from "../api/http.js";
-import { LANGUAGES } from "../i18n/translations.js";
 
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
@@ -15,9 +15,10 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
   const [detected, setDetected] = useState(null); // "owner" | "staff" | "client" | null
   const { login, loading } = useAuth();
-  const { t, language, setLanguage } = usePreferences();
+  const { t } = usePreferences();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -69,72 +70,72 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-lg font-bold text-white">
-            IN
-          </span>
-          <h1 className="text-xl font-bold text-white">Invoicify</h1>
-          <p className="mt-1 text-sm text-white/50">Client Billing &amp; Payment Console</p>
+    <AuthShell>
+      <h1 className="text-2xl font-bold tracking-tight text-ink">{t("login.heading")}</h1>
+      <p className="mt-1.5 text-sm text-gray-500">{t("login.subtitle")}</p>
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+        <FormField
+          label={t("login.email")}
+          type="email"
+          placeholder="you@example.com"
+          autoComplete="username"
+          autoFocus
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={errors.email}
+        />
+        <div>
+          <FormField
+            label={t("login.password")}
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={errors.password}
+            suffix={
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="rounded px-1.5 py-1 text-xs font-medium text-gray-500 hover:text-ink"
+              >
+                {showPassword ? t("login.hide") : t("login.show")}
+              </button>
+            }
+          />
+          <div className="mt-2 text-right">
+            <Link to="/forgot-password" className="text-xs font-medium text-accent hover:underline">
+              {t("login.forgot")}
+            </Link>
+          </div>
         </div>
 
-        <div className="rounded-xl bg-white p-6 shadow-xl">
-          <h2 className="text-base font-semibold text-ink">{t("login.title")}</h2>
-          <p className="mt-1 text-sm text-gray-500">{t("login.subtitle")}</p>
+        {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
+        {errors.form && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{errors.form}</p>}
 
-          <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
-            <FormField
-              label={t("login.email")}
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={errors.email}
-            />
-            <FormField
-              label={t("login.password")}
-              type="password"
-              placeholder="••••••••"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={errors.password}
-            />
+        <Button type="submit" size="lg" className="w-full" loading={loading}>
+          {t("login.submit")}
+        </Button>
 
-            {errors.role && <p className="text-xs text-red-600">{errors.role}</p>}
-            {errors.form && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{errors.form}</p>}
-
-            <Button type="submit" className="w-full" loading={loading}>
-              {t("login.submit")}
-            </Button>
-
-            <div className="rounded-lg bg-accent-soft px-3 py-2.5 text-xs text-accent-dark" aria-live="polite">
-              {detected ? (
-                <>
-                  {t("login.signingInAs")} <strong>{t(`role.${detected}`)}</strong> — {t(`login.desc.${detected}`)}
-                </>
-              ) : (
-                t("login.helper.default")
-              )}
-            </div>
-          </form>
+        <div
+          className="flex items-start gap-2.5 rounded-lg bg-accent-soft px-3.5 py-3 text-xs leading-relaxed text-accent-dark"
+          aria-live="polite"
+        >
+          <span className={`mt-1 h-2 w-2 flex-shrink-0 rounded-full ${detected ? "bg-emerald-500" : "bg-accent/40"}`} />
+          <p>
+            {detected ? (
+              <>
+                {t("login.signingInAs")} <strong>{t(`role.${detected}`)}</strong> — {t(`login.desc.${detected}`)}
+              </>
+            ) : (
+              t("login.helper.default")
+            )}
+          </p>
         </div>
+      </form>
 
-        <div className="mt-4 flex justify-center gap-3 text-xs text-white/50">
-          {LANGUAGES.map((l) => (
-            <button
-              key={l.code}
-              type="button"
-              onClick={() => setLanguage(l.code)}
-              className={language === l.code ? "font-semibold text-white" : "hover:text-white"}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+      <p className="mt-8 text-center text-xs text-gray-400">{t("login.help")}</p>
+    </AuthShell>
   );
 }

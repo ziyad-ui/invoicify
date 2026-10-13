@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { IconClose } from "./icons.jsx";
 
 export default function Modal({ open, onClose, title, children, footer, width = "max-w-md" }) {
@@ -13,7 +14,8 @@ export default function Modal({ open, onClose, title, children, footer, width = 
 
   if (!open) return null;
 
-  return (
+  // Rendered on <body> so no parent (sticky header, transformed card...) can clip or re-position it.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div
         className={`w-full ${width} rounded-xl bg-white shadow-xl`}
@@ -34,6 +36,7 @@ export default function Modal({ open, onClose, title, children, footer, width = 
         <div className="max-h-[70vh] overflow-y-auto px-5 py-4 scrollbar-thin">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -22,7 +22,8 @@ class ClientOnboardingService
 
     /**
      * @param  array  $data  validated: name, email, phone?, property_name, property_type,
-     *                       total_price, monthly_amount, term_months, first_due_date
+     *                       total_price, monthly_amount, term_months, first_due_date,
+     *                       latitude?, longitude?, address?, location_notes?
      * @return array{0: Client, 1: string}  the client and their one-time temporary password
      */
     public function create(array $data): array
@@ -41,6 +42,11 @@ class ClientOnboardingService
                 'name' => $data['property_name'],
                 'type' => $data['property_type'],
                 'total_price' => $data['total_price'],
+                // Optional map pin (all four may be null)
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
+                'address' => $data['address'] ?? null,
+                'location_notes' => $data['location_notes'] ?? null,
             ]);
 
             $plan = InstallmentPlan::create([

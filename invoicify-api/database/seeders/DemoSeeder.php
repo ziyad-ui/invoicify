@@ -44,6 +44,35 @@ class DemoSeeder extends Seeder
             ['Rico Villanueva', 'rico.villanueva@example.com', '0922 555 0812', 'Lot 2, Seabreeze Beach Lots', 'Beach Property', 2600000, 21500, 24, 2, 5],
         ];
 
+        // Sample map pins (Tagum City area). Liza is left unpinned on purpose so you can see the portal's "no pin yet" state.
+        $locations = [
+            'Unit 12B, Sunview Residences' => [
+                'latitude' => 7.4478000, 'longitude' => 125.8078000,
+                'address' => 'Sunview Residences, Tower B, Apokon, Tagum City, Davao del Norte',
+                'location_notes' => "Two blocks past the Apokon barangay hall.\nVisitors register at the guard house; Unit 12B is on the 12th floor of Tower B.",
+            ],
+            'Lot 4, Greenfield Homes' => [
+                'latitude' => 7.4351000, 'longitude' => 125.8189000,
+                'address' => 'Greenfield Homes, Phase 2 Block 5 Lot 4, Visayan Village, Tagum City',
+                'location_notes' => 'Enter through the main subdivision gate and turn right at the clubhouse. The lot is marked with a Love Realty sign.',
+            ],
+            'Unit 5A, Palm Court Condo' => [
+                'latitude' => 7.4562000, 'longitude' => 125.8003000,
+                'address' => 'Palm Court Condominium, National Highway, Magugpo Poblacion, Tagum City',
+                'location_notes' => 'Beside the highway gas station. Parking is in the basement; unit 5A is near the elevator lobby.',
+            ],
+            'Lot 9, Riverside Estates' => [
+                'latitude' => 7.4210000, 'longitude' => 125.7925000,
+                'address' => 'Riverside Estates, Phase 1 Block 2 Lot 9, Mankilam, Tagum City',
+                'location_notes' => 'Follow the concrete road along the river. Look for the blue perimeter fence.',
+            ],
+            'Lot 2, Seabreeze Beach Lots' => [
+                'latitude' => 7.5120000, 'longitude' => 125.8460000,
+                'address' => 'Seabreeze Beach Lots, Lot 2, Madaum, Tagum City',
+                'location_notes' => 'Beachfront lot, 150 m from the barangay chapel. Passable by tricycle; the last 50 m is a dirt path.',
+            ],
+        ];
+
         $modes = ['Bank Transfer', 'Cash', 'Check'];
         $refCounter = 1000;
 
@@ -52,9 +81,9 @@ class DemoSeeder extends Seeder
             $nextDue = today()->addDays($offset);
 
             $client = Client::create(['name' => $name, 'email' => $email, 'phone' => $phone]);
-            $property = Property::create([
+            $property = Property::create(array_merge([
                 'client_id' => $client->id, 'name' => $propName, 'type' => $propType, 'total_price' => $price,
-            ]);
+            ], $locations[$propName] ?? []));
             $plan = InstallmentPlan::create([
                 'client_id' => $client->id,
                 'property_id' => $property->id,

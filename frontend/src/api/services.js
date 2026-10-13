@@ -13,6 +13,10 @@ export const authApi = {
   login: ({ email, password }) => body(http.post("/login", { email, password })),
   // Which kind of account an email belongs to — only used for the login screen's hint. Resolves to { role, label }.
   checkRole: (email) => body(http.get("/auth/check-role", { params: { email } })),
+  // Emails a reset link. The answer is the same whether or not the account exists.
+  forgotPassword: (email) => body(http.post("/forgot-password", { email })),
+  resetPassword: ({ email, token, password, passwordConfirmation }) =>
+    body(http.post("/reset-password", { email, token, password, password_confirmation: passwordConfirmation })),
   me: () => body(http.get("/me")),
   logout: () => http.post("/logout"),
 };
@@ -37,6 +41,17 @@ export const dashboardApi = {
   get: () => data(http.get("/dashboard")),
 };
 
+// Optional map pin sent with a client's property. Empty values become null, which clears the pin on edit.
+const locationPayload = (f) => {
+  const hasPin = f.latitude !== "" && f.latitude != null && f.longitude !== "" && f.longitude != null;
+  return {
+    latitude: hasPin ? Number(f.latitude) : null,
+    longitude: hasPin ? Number(f.longitude) : null,
+    address: f.address?.trim() || null,
+    location_notes: f.locationNotes?.trim() || null,
+  };
+};
+
 export const clientsApi = {
   list: (params) => data(http.get("/clients", { params })),
   get: (id) => data(http.get(`/clients/${id}`)),
@@ -54,6 +69,7 @@ export const clientsApi = {
         monthly_amount: f.monthlyAmount,
         term_months: f.termMonths,
         first_due_date: f.firstDueDate,
+        ...locationPayload(f),
       })
     ),
   update: (id, f) =>
@@ -67,6 +83,7 @@ export const clientsApi = {
         total_price: f.totalPrice,
         monthly_amount: f.monthlyAmount,
         term_months: f.termMonths,
+        ...locationPayload(f),
       })
     ),
   // list({ archived: 1 }) returns archived clients instead of active ones.

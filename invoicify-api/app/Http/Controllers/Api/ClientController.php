@@ -70,6 +70,10 @@ class ClientController extends Controller
             'monthly_amount' => ['required', 'numeric', 'min:1'],
             'term_months' => ['required', 'integer', 'min:1', 'max:120'],
             'first_due_date' => ['required', 'date'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'location_notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
         [$client, $temporaryPassword] = $onboarding->create($data);
@@ -128,6 +132,10 @@ class ClientController extends Controller
             'total_price' => ['sometimes', 'required', 'numeric', 'min:0'],
             'monthly_amount' => ['sometimes', 'required', 'numeric', 'min:1'],
             'term_months' => ['sometimes', 'required', 'integer', 'min:1', 'max:120'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'location_notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
         DB::transaction(function () use ($data, $client, $user, $schedule) {
@@ -142,6 +150,13 @@ class ClientController extends Controller
                 'type' => $data['property_type'] ?? null,
                 'total_price' => $data['total_price'] ?? null,
             ], fn ($v) => $v !== null);
+
+            // Map pin: unlike the fields above, null is meaningful here (it clears the pin / notes).
+            foreach (['latitude', 'longitude', 'address', 'location_notes'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $propertyFields[$field] = $data[$field];
+                }
+            }
 
             if ($propertyFields && $client->property) {
                 $client->property->update($propertyFields);
