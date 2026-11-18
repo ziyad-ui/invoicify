@@ -109,3 +109,13 @@ body {
 .invoicify-pin { background: none; border: none; }
 .invoicify-pin svg { filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35)); }
 .leaflet-popup-content { margin: 10px 14px; font-size: 13px; }
+
+/* Dark mode: darken the OpenStreetMap tiles only (markers and popups sit in other panes and keep their colours). */
+.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
+.dark .leaflet-container { background: #1c2030; }
+.dark .leaflet-bar a,
+.dark .leaflet-bar a:hover { background: #171b26; color: #e5e7eb; border-bottom-color: #2a2f3d; }
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip { background: #171b26; color: #e5e7eb; }
+.dark .leaflet-control-attribution { background: rgba(23, 27, 38, 0.85); color: #9ca3af; }
+.dark .leaflet-control-attribution a { color: #a5b4fc; }

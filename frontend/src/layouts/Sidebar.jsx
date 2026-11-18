@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import Logo from "../components/Logo.jsx";
+import Avatar from "../components/Avatar.jsx";
 import { IconLogout, IconClose } from "../components/icons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePreferences } from "../context/PreferencesContext.jsx";
@@ -12,12 +13,6 @@ import { usePreferences } from "../context/PreferencesContext.jsx";
 export default function Sidebar({ items, tagline, open = false, onClose = () => {} }) {
   const { user, logout } = useAuth();
   const { t } = usePreferences();
-  const initials = (user?.name || "?")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 
   return (
     <>
@@ -63,9 +58,7 @@ export default function Sidebar({ items, tagline, open = false, onClose = () => 
 
         <div className="m-3 rounded-xl bg-white/5 p-3">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold">
-              {initials}
-            </span>
+            <Avatar user={user} size={36} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{user?.name}</p>
               <p className="truncate text-xs capitalize text-white/50">{user?.title || user?.role}</p>

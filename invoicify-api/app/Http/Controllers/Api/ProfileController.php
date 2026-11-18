@@ -30,6 +30,47 @@ class ProfileController extends Controller
         return response()->json(['message' => 'Profile updated.', 'user' => $user->fresh()->sessionPayload()]);
     }
 
+    /**
+     * POST /api/user/avatar — profile picture. The browser crops it to a 256px square JPEG and sends it as a
+     * data URL, so it is stored in the database and no file storage has to be set up.
+     */
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'avatar' => ['required', 'string', 'max:250000', function (string $attribute, mixed $value, \Closure $fail) {
+                if (! preg_match('#^data:image/(jpeg|png|webp);base64,#', $value, $m)) {
+                    return $fail('Choose a JPG, PNG or WebP image.');
+                }
+
+                $binary = base64_decode(substr($value, strlen($m[0])), true);
+
+                if ($binary === false || strlen($binary) > 180000) {
+                    return $fail('That image is too large. Try a smaller one.');
+                }
+
+                $info = @getimagesizefromstring($binary);
+
+                if (! $info || $info[0] > 1024 || $info[1] > 1024) {
+                    return $fail('That file is not a valid image.');
+                }
+            }],
+        ]);
+
+        $user = $request->user();
+        $user->update(['avatar' => $data['avatar']]);
+
+        return response()->json(['message' => 'Profile photo updated.', 'user' => $user->fresh()->sessionPayload()]);
+    }
+
+    /** DELETE /api/user/avatar */
+    public function removeAvatar(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->update(['avatar' => null]);
+
+        return response()->json(['message' => 'Profile photo removed.', 'user' => $user->fresh()->sessionPayload()]);
+    }
+
     /** POST /api/user/update-email — needs the current password. Clients' client record is kept in sync. */
     public function updateEmail(Request $request): JsonResponse
     {

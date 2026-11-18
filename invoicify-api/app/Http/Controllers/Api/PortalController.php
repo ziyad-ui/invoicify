@@ -10,6 +10,12 @@ use Illuminate\Http\Request;
 
 class PortalController extends Controller
 {
+    /** GET /api/portal/settings — the announcement banner (when live) and the owner's payment instructions. */
+    public function settings(): JsonResponse
+    {
+        return response()->json(['data' => SettingsController::forClients()]);
+    }
+
     /**
      * GET /api/portal/me — the signed-in client's own record. There is no
      * client id in the URL on purpose: a client can never ask for someone else's data.

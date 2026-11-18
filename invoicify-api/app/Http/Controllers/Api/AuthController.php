@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\PasswordResetMail;
 use App\Models\User;
+use App\Support\DeviceLabel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -67,7 +68,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('invoicify', ['*'], now()->addHours(8))->plainTextToken;
+        $token = $user->createToken(DeviceLabel::fromUserAgent($request->userAgent()), ['*'], now()->addHours(8))->plainTextToken;
 
         return response()->json([
             'token' => $token,

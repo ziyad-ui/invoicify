@@ -15,7 +15,7 @@ export default function StatCard({ label, value, tone = "default", hint }) {
       >
         {label}
       </p>
-      <p className="num mt-2 text-2xl font-semibold">{value}</p>
+      <p className="num mt-3 break-words text-2xl font-semibold leading-tight sm:text-3xl">{value}</p>
       {hint && (
         <p className={`mt-1 text-xs ${tone === "dark" ? "text-white/50" : "text-gray-400"}`}>
           {hint}

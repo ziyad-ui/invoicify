@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import AppShell from "./AppShell.jsx";
-import { IconDashboard, IconClients, IconInvoice, IconPayments, IconReports, IconStaff } from "../components/icons.jsx";
+import { IconDashboard, IconClients, IconInvoice, IconPayments, IconReports, IconStaff, IconSettings } from "../components/icons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePreferences } from "../context/PreferencesContext.jsx";
 import { notificationsApi } from "../api/services.js";

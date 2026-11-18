@@ -7,6 +7,9 @@ import StatusBadge from "../../components/StatusBadge.jsx";
 import BarChart from "../../components/BarChart.jsx";
 import LoadingState from "../../components/LoadingState.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
+import ReceivablesAging from "../../components/dashboard/ReceivablesAging.jsx";
+import ActivityFeed from "../../components/dashboard/ActivityFeed.jsx";
+import PlanProgress from "../../components/dashboard/PlanProgress.jsx";
 import useFetch from "../../hooks/useFetch.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { usePreferences } from "../../context/PreferencesContext.jsx";
@@ -36,7 +39,7 @@ export default function Dashboard() {
     );
   }
 
-  const { stats, clients = [], monthlyCollections = [], period } = data;
+  const { stats, clients = [], monthlyCollections = [], period, aging, activity = [], planProgress = [] } = data;
 
   return (
     <div>
@@ -51,14 +54,36 @@ export default function Dashboard() {
               hint={period}
               tone="dark"
             />
-            <StatCard label={t("dash.outstanding")} value={formatCurrency(stats.outstandingBalance)} />
-            <StatCard label={t("dash.activeClients")} value={stats.activeClients} />
-            <StatCard label={t("dash.pending")} value={stats.pendingPayments} />
+            <StatCard
+              label={t("dash.outstanding")}
+              value={formatCurrency(stats.outstandingBalance)}
+              hint={t("dash.hint.open", { n: stats.openInvoices })}
+            />
+            <StatCard
+              label={t("dash.activeClients")}
+              value={stats.activeClients}
+              hint={t("dash.hint.overdue", { n: stats.overdueAccounts })}
+            />
+            <StatCard
+              label={t("dash.pending")}
+              value={stats.pendingPayments}
+              hint={t("dash.hint.pending", { overdue: stats.overdueAccounts, soon: stats.dueSoon })}
+            />
           </div>
 
-          <Card title={t("dash.monthly")} className="mt-6">
-            <BarChart data={monthlyCollections} />
-          </Card>
+          <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-5">
+            <Card title={t("dash.monthly")} className="xl:col-span-3">
+              <BarChart data={monthlyCollections} />
+            </Card>
+            <div className="xl:col-span-2">
+              <ReceivablesAging aging={aging} collected={stats.revenueThisMonth} />
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <ActivityFeed events={activity} />
+            <PlanProgress rows={planProgress} />
+          </div>
         </>
       ) : (
         <>

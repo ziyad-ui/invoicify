@@ -215,3 +215,32 @@ export const IconMapPin = (p) => (
     <circle cx="12" cy="9.5" r="2.5" />
   </svg>
 );
+
+export const IconLock = (p) => (
+  <svg {...base} {...p}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+
+export const IconMegaphone = (p) => (
+  <svg {...base} {...p}>
+    <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z" />
+    <path d="M15 9a4 4 0 0 1 0 6" />
+    <path d="M18 6.5a8 8 0 0 1 0 11" />
+  </svg>
+);
+
+export const IconDevice = (p) => (
+  <svg {...base} {...p}>
+    <rect x="4" y="5" width="16" height="11" rx="2" />
+    <path d="M2 19h20" />
+  </svg>
+);
+
+export const IconCamera = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </svg>
+);

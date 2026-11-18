@@ -27,6 +27,9 @@ export const profileApi = {
   updateName: (name) => body(http.post("/user/update-profile", { name })),
   updateEmail: ({ email, currentPassword }) =>
     body(http.post("/user/update-email", { email, current_password: currentPassword })),
+  // Profile picture: a 256px JPEG data URL made in the browser (see utils/image.js).
+  uploadAvatar: (avatar) => body(http.post("/user/avatar", { avatar })),
+  removeAvatar: () => body(http.delete("/user/avatar")),
   changePassword: (f) =>
     body(
       http.post("/user/change-password", {
@@ -139,7 +142,23 @@ export const reportsApi = {
   exportXlsx: () => http.get("/reports/export", { responseType: "blob" }).then((res) => res.data),
 };
 
+// "Where you're signed in" (every role).
+export const sessionsApi = {
+  list: () => data(http.get("/sessions")),
+  revoke: (id) => body(http.delete(`/sessions/${id}`)),
+  revokeOthers: () => body(http.delete("/sessions")),
+};
+
+// Owner-only: announcement banner + payment instructions shown in the client portal.
+export const settingsApi = {
+  getPortal: () => data(http.get("/settings/portal")),
+  // Send only the section being saved: { announcement: {...} } or { payment_instructions }.
+  savePortal: (payload) => body(http.put("/settings/portal", payload)),
+};
+
 export const portalApi = {
   me: () => data(http.get("/portal/me")),
+  // { announcement: { message, tone } | null, paymentInstructions }
+  settings: () => data(http.get("/portal/settings")),
   notifications: () => data(http.get("/portal/notifications")),
 };

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Card from "../../components/Card.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import StatTile from "../../components/StatTile.jsx";
+import AnnouncementBanner from "../../components/AnnouncementBanner.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import LoadingState from "../../components/LoadingState.jsx";
 import ErrorState from "../../components/ErrorState.jsx";
@@ -18,6 +19,8 @@ function Empty({ children }) {
 // GET /api/portal/me — the API only ever returns the signed-in client's own record.
 export default function PortalDashboard() {
   const { data: client, loading, error, reload } = useFetch(() => portalApi.me(), []);
+  // Optional extras from the owner's Settings; if this request fails the dashboard still works.
+  const { data: portalSettings } = useFetch(() => portalApi.settings(), []);
 
   if (loading) {
     return (
@@ -38,6 +41,8 @@ export default function PortalDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" subtitle={client.property?.name} />
+
+      {portalSettings?.announcement && <AnnouncementBanner {...portalSettings.announcement} />}
 
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-ink via-ink-soft to-accent-dark p-6 text-white shadow-sm sm:p-8">
         <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-accent/30 blur-3xl" />
@@ -151,9 +156,9 @@ export default function PortalDashboard() {
 
       <div className="flex items-start gap-3 rounded-xl border border-accent/20 bg-accent-soft px-4 py-3.5 text-sm text-gray-700">
         <IconInfo width={18} height={18} className="mt-0.5 flex-shrink-0 text-accent" />
-        <p>
-          To settle your balance, pay via bank transfer, check, or in person at the Love Realty office, then send your
-          receipt to your account officer for recording. Payments are confirmed here once verified by staff.
+        <p className="whitespace-pre-line">
+          {portalSettings?.paymentInstructions ||
+            "To settle your balance, pay via bank transfer, check, or in person at the Love Realty office, then send your receipt to your account officer for recording. Payments are confirmed here once verified by staff."}
         </p>
       </div>
     </div>

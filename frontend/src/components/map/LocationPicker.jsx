@@ -171,7 +171,7 @@ export default function LocationPicker({ value, onChange, errors = {} }) {
 
       {/* `isolate` keeps Leaflet's internal z-indexes from escaping above the modal. */}
       <div className="isolate overflow-hidden rounded-xl border border-gray-200">
-        <div ref={mapEl} className="h-64 w-full sm:h-72" />
+        <div ref={mapEl} className="h-72 w-full sm:h-80" />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">

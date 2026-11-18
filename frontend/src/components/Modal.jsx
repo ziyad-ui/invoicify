@@ -33,7 +33,7 @@ export default function Modal({ open, onClose, title, children, footer, width = 
             <IconClose width={16} height={16} />
           </button>
         </div>
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4 scrollbar-thin">{children}</div>
+        <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-4 scrollbar-thin">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">{footer}</div>}
       </div>
     </div>,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
 import Button from "./Button.jsx";
 import FormField from "./FormField.jsx";
@@ -48,6 +48,7 @@ export default function ClientFormModal({ open, mode = "add", client, onClose, o
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
+  const mapSectionRef = useRef(null);
 
   // Fresh form each time the modal opens (pre-filled from the client when editing).
   useEffect(() => {
@@ -205,10 +206,14 @@ export default function ClientFormModal({ open, mode = "add", client, onClose, o
         </p>
 
         {/* Optional: Property location / map pin */}
-        <div className="col-span-6 rounded-xl border border-gray-200">
+        <div ref={mapSectionRef} className="col-span-6 rounded-xl border border-gray-200">
           <button
             type="button"
-            onClick={() => setMapOpen((o) => !o)}
+            onClick={() => {
+              // When the section opens, bring the whole map into view instead of leaving it below the fold.
+              if (!mapOpen) setTimeout(() => mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+              setMapOpen((o) => !o);
+            }}
             aria-expanded={mapOpen}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
           >

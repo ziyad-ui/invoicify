@@ -16,7 +16,7 @@ class User extends Authenticatable
     public const ROLE_STAFF = 'staff';
     public const ROLE_CLIENT = 'client';
 
-    protected $fillable = ['name', 'email', 'password', 'role', 'client_id', 'is_active', 'must_change_password'];
+    protected $fillable = ['name', 'email', 'avatar', 'password', 'role', 'client_id', 'is_active', 'must_change_password'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -44,6 +44,7 @@ class User extends Authenticatable
             'role' => $this->role,
             'title' => $this->title(),
             'email' => $this->email,
+            'avatar' => $this->avatar, // data URL or null
             'clientId' => $this->client_id,
             'mustChangePassword' => (bool) $this->must_change_password,
         ];

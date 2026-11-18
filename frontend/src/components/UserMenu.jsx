@@ -1,20 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
-import { IconMenu, IconUser, IconSettings, IconInfo, IconLogout } from "./icons.jsx";
-import ProfileDrawer from "./ProfileDrawer.jsx";
-import SettingsModal from "./SettingsModal.jsx";
+import { useNavigate } from "react-router-dom";
+import { IconMenu, IconSettings, IconInfo, IconLogout } from "./icons.jsx";
+import Avatar from "./Avatar.jsx";
 import AboutModal from "./AboutModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { usePreferences } from "../context/PreferencesContext.jsx";
 
 /**
- * Hamburger (☰) menu in the top-right of every view: Profile, Settings, About, Log out.
+ * Hamburger (☰) menu in the top-right of every view: your profile, Settings, About, Log out.
+ * Profile and Settings both live on the Settings page now.
  */
 export default function UserMenu() {
-  const { user, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const { t } = usePreferences();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [panel, setPanel] = useState(null); // "profile" | "settings" | "about"
+  const [about, setAbout] = useState(false);
   const wrapRef = useRef(null);
+
+  const settingsPath = role === "client" ? "/portal/settings" : "/settings";
 
   useEffect(() => {
     if (!open) return;
@@ -32,13 +36,12 @@ export default function UserMenu() {
     };
   }, [open]);
 
-  function choose(name) {
+  function go(path) {
     setOpen(false);
-    setPanel(name);
+    navigate(path);
   }
 
-  const item =
-    "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink transition-colors hover:bg-gray-50";
+  const item = "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink transition-colors hover:bg-gray-50";
 
   return (
     <div className="relative" ref={wrapRef}>
@@ -53,20 +56,28 @@ export default function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
-          <div className="border-b border-gray-100 px-4 py-3">
-            <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
-            <p className="truncate text-xs text-gray-500">{user?.email}</p>
-          </div>
-
-
-          <button className={item} onClick={() => choose("profile")}>
-            <IconUser width={17} height={17} className="text-gray-400" /> {t("menu.profile")}
+        <div className="absolute right-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+          <button
+            className="flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50"
+            onClick={() => go(`${settingsPath}?tab=profile`)}
+          >
+            <Avatar user={user} size={36} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-ink">{user?.name}</span>
+              <span className="block truncate text-xs text-gray-500">{user?.email}</span>
+            </span>
           </button>
-          <button className={item} onClick={() => choose("settings")}>
+
+          <button className={item} onClick={() => go(settingsPath)}>
             <IconSettings width={17} height={17} className="text-gray-400" /> {t("menu.settings")}
           </button>
-          <button className={item} onClick={() => choose("about")}>
+          <button
+            className={item}
+            onClick={() => {
+              setOpen(false);
+              setAbout(true);
+            }}
+          >
             <IconInfo width={17} height={17} className="text-gray-400" /> {t("menu.about")}
           </button>
           <div className="my-1 border-t border-gray-100" />
@@ -76,9 +87,7 @@ export default function UserMenu() {
         </div>
       )}
 
-      <ProfileDrawer open={panel === "profile"} onClose={() => setPanel(null)} />
-      <SettingsModal open={panel === "settings"} onClose={() => setPanel(null)} />
-      <AboutModal open={panel === "about"} onClose={() => setPanel(null)} />
+      <AboutModal open={about} onClose={() => setAbout(false)} />
     </div>
   );
 }

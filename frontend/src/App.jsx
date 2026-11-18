@@ -25,6 +25,7 @@ import PortalProfile from "./pages/portal/PortalProfile.jsx";
 import PortalInvoices from "./pages/portal/PortalInvoices.jsx";
 import PortalPayments from "./pages/portal/PortalPayments.jsx";
 import PortalProperty from "./pages/portal/PortalProperty.jsx";
+import Settings from "./pages/Settings.jsx";
 
 export default function App() {
   const { role, initializing } = useAuth();
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/settings" element={<Settings />} />
         <Route
           path="/reports"
           element={
@@ -89,6 +91,7 @@ export default function App() {
       >
         <Route path="/portal/dashboard" element={<PortalDashboard />} />
         <Route path="/portal/property" element={<PortalProperty />} />
+        <Route path="/portal/settings" element={<Settings />} />
         <Route path="/portal/profile" element={<PortalProfile />} />
         <Route path="/portal/invoices" element={<PortalInvoices />} />
         <Route path="/portal/payments" element={<PortalPayments />} />

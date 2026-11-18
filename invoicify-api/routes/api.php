@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PortalController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\SessionController;
+use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,11 +24,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    // "Where you're signed in" (every role)
+    Route::get('/sessions', [SessionController::class, 'index']);
+    Route::delete('/sessions', [SessionController::class, 'destroyOthers'])->middleware('throttle:10,1');
+    Route::delete('/sessions/{id}', [SessionController::class, 'destroy'])->whereNumber('id')->middleware('throttle:20,1');
+
     // Self-service account edits (every role). Email and password changes need the current password.
     Route::put('/password', [ProfileController::class, 'updatePassword'])->middleware('throttle:6,1');
     Route::prefix('user')->group(function () {
         Route::post('/update-profile', [ProfileController::class, 'updateProfile'])->middleware('throttle:20,1');
         Route::post('/update-email', [ProfileController::class, 'updateEmail'])->middleware('throttle:6,1');
+        Route::post('/avatar', [ProfileController::class, 'updateAvatar'])->middleware('throttle:10,1');
+        Route::delete('/avatar', [ProfileController::class, 'removeAvatar'])->middleware('throttle:10,1');
         Route::post('/change-password', [ProfileController::class, 'updatePassword'])->middleware('throttle:6,1');
     });
 
@@ -59,6 +68,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{staff}/reset-password', [StaffController::class, 'resetPassword'])->middleware('throttle:20,1');
     });
 
+    // Owner only: client-portal settings (announcement banner, payment instructions)
+    Route::middleware('role:owner')->prefix('settings')->group(function () {
+        Route::get('/portal', [SettingsController::class, 'portal']);
+        Route::put('/portal', [SettingsController::class, 'updatePortal'])->middleware('throttle:20,1');
+    });
+
     // Owner only
     Route::middleware('role:owner')->prefix('reports')->group(function () {
         Route::get('/summary', [ReportController::class, 'summary']);
@@ -69,5 +84,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:client')->prefix('portal')->group(function () {
         Route::get('/me', [PortalController::class, 'me']);
         Route::get('/notifications', [PortalController::class, 'notifications']);
+        Route::get('/settings', [PortalController::class, 'settings']);
     });
 });

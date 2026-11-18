@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
@@ -38,8 +39,12 @@ class DashboardController extends Controller
                 now()->endOfMonth()->toDateString(),
             ])->sum('amount'), 2);
             $stats['outstandingBalance'] = round($clients->sum('balance'), 2);
+            $stats['openInvoices'] = Invoice::unpaid()->count();
             $data['stats'] = $stats;
             $data['monthlyCollections'] = $reports->monthlyCollections(6);
+            $data['aging'] = $reports->receivablesAging();
+            $data['activity'] = $reports->recentActivity();
+            $data['planProgress'] = $reports->planProgress($clients);
             $data['period'] = now()->format('F Y');
         } else {
             // Staff get the follow-up list only.
